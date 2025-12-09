@@ -1,3 +1,6 @@
+# Copyright IBM Corp. 2014, 2025
+# SPDX-License-Identifier: MPL-2.0
+
 # Example configuration for IBM project
 copyright:
   holder: "IBM Corp."
@@ -9,8 +12,11 @@ license:
   enabled: true
   identifier: "MPL-2.0"
   format: "SPDX-License-Identifier: {{.Identifier}}"
-
 files:
+  # Only process files tracked by git (respects .gitignore)
+  # Set to false to process all files in directory
+  git_tracked: true
+  
   extensions:
     - ".go"
     - ".sh" 
@@ -44,9 +50,14 @@ detection:
     - "DO NOT EDIT"
   
   replace_patterns:
-    - "Copyright.*HashiCorp"
-    - "Copyright \\(c\\).*HashiCorp"
-
+  
+  # Limit how many lines to scan for existing copyright (0 = scan entire file)
+  # Prevents finding copyrights deep in files (e.g., test cases)
+  max_scan_lines: 20
+  
+  # Require copyright to be at the very top (after shebang/frontmatter)
+  # If false, copyright can be anywhere within max_scan_lines
+  require_at_top: true
 third_party:
   action: "above"
   patterns:

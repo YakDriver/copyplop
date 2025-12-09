@@ -1,7 +1,9 @@
+// Copyright IBM Corp. 2014, 2025
+// SPDX-License-Identifier: MPL-2.0
+
 package copyright
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -19,7 +21,7 @@ func NewFixer(cfg *config.Config) *Fixer {
 }
 
 func (f *Fixer) Fix(path string) (*FixResult, error) {
-	files, err := getTrackedFiles(path)
+	files, err := getTrackedFiles(path, f.config)
 	if err != nil {
 		return nil, err
 	}
@@ -99,16 +101,34 @@ func (f *Fixer) fixFile(file string) bool {
 		startLine = frontmatterEnd
 	}
 
-	// Scan for existing copyrights and third-party copyrights
-	for i := startLine; i < len(lines); i++ {
+	// Determine scan limit for header area
+	maxScan := len(lines)
+	if f.config.Detection.MaxScanLines > 0 {
+		maxScan = startLine + f.config.Detection.MaxScanLines
+		if maxScan > len(lines) {
+			maxScan = len(lines)
+		}
+	}
+
+	// Scan for existing copyrights and third-party copyrights in header area only
+	hasCorrectCopyright := false
+	hasCorrectLicense := false
+	for i := startLine; i < maxScan; i++ {
 		line := lines[i]
-		if f.config.ShouldReplace(line) || strings.Contains(line, "SPDX-License-Identifier") {
+		if f.config.ShouldReplace(line) {
 			hasCopyright = true
 		} else if f.config.IsThirdPartyCopyright(line) {
 			thirdPartyLines = append(thirdPartyLines, line)
 		} else if strings.TrimSpace(line) == strings.TrimSpace(copyrightHeader) {
-			return false // Already correct
+			hasCorrectCopyright = true
+		} else if licenseHeader != "" && strings.TrimSpace(line) == strings.TrimSpace(licenseHeader) {
+			hasCorrectLicense = true
 		}
+	}
+
+	// If both copyright and license (if enabled) are already correct, nothing to do
+	if hasCorrectCopyright && (licenseHeader == "" || hasCorrectLicense) {
+		return false
 	}
 
 	// Handle third-party copyrights based on action
@@ -145,28 +165,38 @@ func (f *Fixer) fixFile(file string) bool {
 		result = append(result, "")
 	}
 
-	// Process remaining content, skipping old headers
+	// Process remaining content, only removing copyrights from header area
 	skipNext := false
 	for i := startLine; i < len(lines); i++ {
 		line := lines[i]
+		inHeaderArea := i < maxScan
 
-		// Skip lines that should be replaced or are third-party (unless action is "leave")
-		if f.config.ShouldReplace(line) || strings.Contains(line, "SPDX-License-Identifier") {
-			fixed = true
-			skipNext = true
-			continue
-		}
+		// Only skip/remove copyright lines if in header area
+		if inHeaderArea {
+			// Remove old copyright/license lines if we're adding new ones
+			if strings.TrimSpace(line) == strings.TrimSpace(copyrightHeader) ||
+				(licenseHeader != "" && strings.TrimSpace(line) == strings.TrimSpace(licenseHeader)) {
+				skipNext = true
+				continue
+			}
 
-		if f.config.IsThirdPartyCopyright(line) && f.config.ThirdParty.Action != "leave" {
-			fixed = true
-			skipNext = true
-			continue
-		}
+			if f.config.ShouldReplace(line) {
+				fixed = true
+				skipNext = true
+				continue
+			}
 
-		// Skip empty lines after headers
-		if skipNext && strings.TrimSpace(line) == "" {
-			skipNext = false
-			continue
+			if f.config.IsThirdPartyCopyright(line) && f.config.ThirdParty.Action != "leave" {
+				fixed = true
+				skipNext = true
+				continue
+			}
+
+			// Skip empty lines after headers
+			if skipNext && strings.TrimSpace(line) == "" {
+				skipNext = false
+				continue
+			}
 		}
 
 		skipNext = false
@@ -183,7 +213,6 @@ func (f *Fixer) fixFile(file string) bool {
 	if fixed {
 		newContent := strings.Join(result, "\n")
 		os.WriteFile(file, []byte(newContent), 0644)
-		fmt.Printf("Fixed: %s\n", file)
 		return true
 	}
 

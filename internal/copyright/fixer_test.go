@@ -1,3 +1,6 @@
+// Copyright IBM Corp. 2014, 2025
+// SPDX-License-Identifier: MPL-2.0
+
 package copyright
 
 import (
@@ -30,6 +33,8 @@ func TestFixer_fixFile(t *testing.T) {
 			SkipGenerated:     true,
 			GeneratedPatterns: []string{"Code generated"},
 			ReplacePatterns:   []string{"Copyright.*HashiCorp"},
+			MaxScanLines:      20,
+			RequireAtTop:      true,
 		},
 		ThirdParty: config.ThirdParty{
 			Action:   "above",
@@ -98,6 +103,72 @@ package main`,
 
 package main`,
 			shouldFix: false,
+		},
+		{
+			name:     "copyright deep in file beyond scan limit",
+			filename: "deep.go",
+			input: `package main
+
+// Line 3
+// Line 4
+// Line 5
+// Line 6
+// Line 7
+// Line 8
+// Line 9
+// Line 10
+// Line 11
+// Line 12
+// Line 13
+// Line 14
+// Line 15
+// Line 16
+// Line 17
+// Line 18
+// Line 19
+// Line 20
+// Line 21
+// Line 22
+// Line 23
+// Line 24
+// Line 25
+// Copyright IBM Corp. 2014, 2025
+// SPDX-License-Identifier: MPL-2.0
+
+func main() {}`,
+			expectedOutput: `// Copyright IBM Corp. 2014, 2025
+// SPDX-License-Identifier: MPL-2.0
+
+package main
+
+// Line 3
+// Line 4
+// Line 5
+// Line 6
+// Line 7
+// Line 8
+// Line 9
+// Line 10
+// Line 11
+// Line 12
+// Line 13
+// Line 14
+// Line 15
+// Line 16
+// Line 17
+// Line 18
+// Line 19
+// Line 20
+// Line 21
+// Line 22
+// Line 23
+// Line 24
+// Line 25
+// Copyright IBM Corp. 2014, 2025
+// SPDX-License-Identifier: MPL-2.0
+
+func main() {}`,
+			shouldFix: true,
 		},
 	}
 

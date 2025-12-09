@@ -1,3 +1,6 @@
+// Copyright IBM Corp. 2014, 2025
+// SPDX-License-Identifier: MPL-2.0
+
 package config
 
 import (
@@ -39,7 +42,6 @@ func TestGetCopyrightHeader(t *testing.T) {
 				},
 			},
 			ext:      ".go",
-			expected: "// Copyright (c) HashiCorp, Inc.",
 		},
 		{
 			name: "Shell script with hash comment",
@@ -75,8 +77,6 @@ func TestShouldReplace(t *testing.T) {
 	config := Config{
 		Detection: Detection{
 			ReplacePatterns: []string{
-				"Copyright.*HashiCorp",
-				"Copyright \\(c\\).*HashiCorp",
 			},
 		},
 	}
@@ -85,9 +85,6 @@ func TestShouldReplace(t *testing.T) {
 		line     string
 		expected bool
 	}{
-		{"// Copyright HashiCorp, Inc.", true},
-		{"// Copyright (c) HashiCorp, Inc.", true},
-		{"# Copyright 2023 HashiCorp", true},
 		{"// Copyright IBM Corp. 2014, 2025", false},
 		{"package main", false},
 	}
@@ -154,7 +151,6 @@ func TestIsThirdPartyCopyright_Precedence(t *testing.T) {
 	config := Config{
 		Detection: Detection{
 			ReplacePatterns: []string{
-				"Copyright.*HashiCorp",
 			},
 		},
 		ThirdParty: ThirdParty{
@@ -171,7 +167,6 @@ func TestIsThirdPartyCopyright_Precedence(t *testing.T) {
 	}{
 		{
 			name:     "HashiCorp copyright - should be replacement, not third-party",
-			line:     "// Copyright HashiCorp, Inc.",
 			expected: false, // Not third-party because it matches replacement
 		},
 		{

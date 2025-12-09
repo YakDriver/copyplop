@@ -1,3 +1,6 @@
+// Copyright IBM Corp. 2014, 2025
+// SPDX-License-Identifier: MPL-2.0
+
 package cmd
 
 import (
@@ -46,6 +49,7 @@ func initConfig() {
 		viper.AddConfigPath(".")
 	}
 
+	viper.SetEnvPrefix("COPYPLOP")
 	viper.AutomaticEnv()
 
 	if err := viper.ReadInConfig(); err != nil {

@@ -1,3 +1,6 @@
+# Copyright IBM Corp. 2014, 2025
+# SPDX-License-Identifier: MPL-2.0
+
 # Add IBM copyright BELOW third-party copyrights  
 copyright:
   holder: "IBM Corp."
@@ -8,16 +11,12 @@ copyright:
 license:
   enabled: true
   identifier: "MPL-2.0"
-  format: "SPDX-License-Identifier: {{.Identifier}}"
-
 files:
   extensions: [".go"]
   comment_styles:
     ".go": "//"
 
 detection:
-  replace_patterns: ["Copyright.*HashiCorp"]
-
 third_party:
   action: "below"  # Third-party first, then IBM copyright
   patterns:

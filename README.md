@@ -1,3 +1,6 @@
+<!-- Copyright IBM Corp. 2014, 2025 -->
+<!-- SPDX-License-Identifier: MPL-2.0 -->
+
 # copyplop
 
 A fully configurable Go CLI tool for managing copyright headers in source code files.
@@ -33,8 +36,6 @@ copyright:
 license:
   enabled: true
   identifier: "MIT"
-  format: "SPDX-License-Identifier: {{.Identifier}}"
-
 files:
   extensions: [".go", ".js", ".py", ".sh"]
   comment_styles:
@@ -72,8 +73,6 @@ Configure how to handle existing third-party copyrights with **precedence logic*
 detection:
   # These get REPLACED (highest precedence)
   replace_patterns:
-    - "Copyright.*HashiCorp"
-    
 third_party:
   action: "above"
   # General pattern - but won't match HashiCorp due to precedence
@@ -95,7 +94,6 @@ package main
 **With `action: "above"`:**
 ```go
 // Copyright IBM Corp. 2014, 2025
-// SPDX-License-Identifier: MPL-2.0
 //Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
 
 package main
@@ -105,8 +103,6 @@ package main
 ```go
 //Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
 // Copyright IBM Corp. 2014, 2025
-// SPDX-License-Identifier: MPL-2.0
-
 package main
 ```
 
@@ -150,8 +146,6 @@ Output: `// Copyright IBM Corp. 2014, 2025`
 copyright:
   format: "Copyright (c) {{.Holder}}"
 ```
-Output: `// Copyright (c) HashiCorp, Inc.`
-
 ### Simple Year Only
 ```yaml
 copyright:

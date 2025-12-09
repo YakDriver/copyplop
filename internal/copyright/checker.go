@@ -1,3 +1,6 @@
+// Copyright IBM Corp. 2014, 2025
+// SPDX-License-Identifier: MPL-2.0
+
 package copyright
 
 import (
@@ -18,7 +21,7 @@ func NewChecker(cfg *config.Config) *Checker {
 }
 
 func (c *Checker) Check(path string) ([]Issue, error) {
-	files, err := getTrackedFiles(path)
+	files, err := getTrackedFiles(path, c.config)
 	if err != nil {
 		return nil, err
 	}
@@ -69,17 +72,55 @@ func (c *Checker) checkFile(file string) *Issue {
 		return &Issue{File: file, Problem: "config error: " + err.Error()}
 	}
 
+	expectedLicense, err := c.config.GetLicenseHeader(ext)
+	if err != nil {
+		return &Issue{File: file, Problem: "config error: " + err.Error()}
+	}
+
 	startLine := 0
 	if hasShebang(lines) {
 		startLine = 1
+	}
+
+	frontmatterEnd := getFrontmatterEnd(lines, c.config, file)
+	if frontmatterEnd > startLine {
+		startLine = frontmatterEnd
 	}
 
 	if startLine >= len(lines) {
 		return &Issue{File: file, Problem: "missing copyright header"}
 	}
 
-	if !strings.Contains(lines[startLine], strings.TrimSpace(expectedHeader[2:])) {
+	// Determine scan limit
+	maxScan := len(lines)
+	if c.config.Detection.MaxScanLines > 0 {
+		maxScan = startLine + c.config.Detection.MaxScanLines
+		if maxScan > len(lines) {
+			maxScan = len(lines)
+		}
+	}
+
+	// Check if copyright and license exist in header area
+	foundCopyright := false
+	foundLicense := false
+	for i := startLine; i < maxScan; i++ {
+		if strings.Contains(lines[i], strings.TrimSpace(expectedHeader[2:])) {
+			foundCopyright = true
+			if c.config.Detection.RequireAtTop && i != startLine {
+				return &Issue{File: file, Problem: "copyright not at top of file"}
+			}
+		}
+		if expectedLicense != "" && strings.Contains(lines[i], strings.TrimSpace(expectedLicense[2:])) {
+			foundLicense = true
+		}
+	}
+
+	if !foundCopyright {
 		return &Issue{File: file, Problem: "missing or incorrect copyright header"}
+	}
+
+	if expectedLicense != "" && !foundLicense {
+		return &Issue{File: file, Problem: "missing license header"}
 	}
 
 	return nil

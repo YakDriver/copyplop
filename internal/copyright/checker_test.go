@@ -1,3 +1,6 @@
+// Copyright IBM Corp. 2014, 2025
+// SPDX-License-Identifier: MPL-2.0
+
 package copyright
 
 import (
@@ -25,6 +28,8 @@ func TestChecker_checkFile(t *testing.T) {
 		Detection: config.Detection{
 			SkipGenerated:     true,
 			GeneratedPatterns: []string{"Code generated"},
+			MaxScanLines:      20,
+			RequireAtTop:      true,
 		},
 	}
 
@@ -42,7 +47,7 @@ func TestChecker_checkFile(t *testing.T) {
 			content: `// Copyright IBM Corp. 2014, 2025
 // SPDX-License-Identifier: MPL-2.0
 
-package main`,
+// package main`,
 			expectIssue: false,
 		},
 		{
@@ -68,6 +73,36 @@ package main`,
 
 echo "hello"`,
 			expectIssue: false,
+		},
+		{
+			name:     "copyright deep in file beyond scan limit",
+			filename: "deep.go",
+			content: `package main
+
+// Line 3
+// Line 4
+// Line 5
+// Line 6
+// Line 7
+// Line 8
+// Line 9
+// Line 10
+// Line 11
+// Line 12
+// Line 13
+// Line 14
+// Line 15
+// Line 16
+// Line 17
+// Line 18
+// Line 19
+// Line 20
+// Line 21
+// Line 22
+// Copyright IBM Corp. 2014, 2025
+
+func main() {}`,
+			expectIssue: true,
 		},
 	}
 

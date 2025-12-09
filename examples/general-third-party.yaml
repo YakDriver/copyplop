@@ -1,3 +1,6 @@
+# Copyright IBM Corp. 2014, 2025
+# SPDX-License-Identifier: MPL-2.0
+
 # General third-party pattern with replacement precedence
 copyright:
   holder: "IBM Corp."
@@ -8,8 +11,6 @@ copyright:
 license:
   enabled: true
   identifier: "MPL-2.0"
-  format: "SPDX-License-Identifier: {{.Identifier}}"
-
 files:
   extensions: [".go"]
   comment_styles:
@@ -18,9 +19,6 @@ files:
 detection:
   # These get REPLACED (take precedence over third-party)
   replace_patterns:
-    - "Copyright.*HashiCorp"
-    - "Copyright \\(c\\).*HashiCorp"
-
 third_party:
   action: "above"
   # General pattern catches any copyright, but replacement patterns take precedence

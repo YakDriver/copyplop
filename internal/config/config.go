@@ -1,3 +1,6 @@
+// Copyright IBM Corp. 2014, 2025
+// SPDX-License-Identifier: MPL-2.0
+
 package config
 
 import (
@@ -33,12 +36,15 @@ type Files struct {
 	IgnorePatterns   []string          `yaml:"ignore_patterns" mapstructure:"ignore_patterns"`
 	CommentStyles    map[string]string `yaml:"comment_styles" mapstructure:"comment_styles"`
 	BelowFrontmatter []string          `yaml:"below_frontmatter" mapstructure:"below_frontmatter"`
+	GitTracked       bool              `yaml:"git_tracked" mapstructure:"git_tracked"`
 }
 
 type Detection struct {
 	SkipGenerated     bool     `yaml:"skip_generated" mapstructure:"skip_generated"`
 	GeneratedPatterns []string `yaml:"generated_patterns" mapstructure:"generated_patterns"`
 	ReplacePatterns   []string `yaml:"replace_patterns" mapstructure:"replace_patterns"`
+	MaxScanLines      int      `yaml:"max_scan_lines" mapstructure:"max_scan_lines"`
+	RequireAtTop      bool     `yaml:"require_at_top" mapstructure:"require_at_top"`
 }
 
 type ThirdParty struct {

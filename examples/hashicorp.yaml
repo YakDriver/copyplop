@@ -1,3 +1,6 @@
+# Copyright IBM Corp. 2014, 2025
+# SPDX-License-Identifier: MPL-2.0
+
 # HashiCorp style configuration
 copyright:
   holder: "HashiCorp, Inc."
@@ -6,8 +9,6 @@ copyright:
 license:
   enabled: true
   identifier: "MPL-2.0"
-  format: "SPDX-License-Identifier: {{.Identifier}}"
-
 files:
   extensions: [".go", ".sh", ".py", ".hcl", ".tf"]
   comment_styles:
@@ -20,4 +21,3 @@ files:
 detection:
   skip_generated: true
   generated_patterns: ["Code generated", "DO NOT EDIT"]
-  replace_patterns: ["Copyright.*HashiCorp"]
