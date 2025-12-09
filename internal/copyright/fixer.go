@@ -104,10 +104,7 @@ func (f *Fixer) fixFile(file string) bool {
 	// Determine scan limit for header area
 	maxScan := len(lines)
 	if f.config.Detection.MaxScanLines > 0 {
-		maxScan = startLine + f.config.Detection.MaxScanLines
-		if maxScan > len(lines) {
-			maxScan = len(lines)
-		}
+		maxScan = min(startLine+f.config.Detection.MaxScanLines, len(lines))
 	}
 
 	// Scan for existing copyrights and third-party copyrights in header area only
@@ -217,4 +214,120 @@ func (f *Fixer) fixFile(file string) bool {
 	}
 
 	return false
+}
+
+// ProcessContent applies the same header normalization logic as fixFile but on in-memory content
+// This is primarily for testing the core logic without file I/O
+func (f *Fixer) ProcessContent(content []byte, ext string) ([]byte, error) {
+	lines := strings.Split(string(content), "\n")
+	if len(lines) == 0 || f.config.IsGenerated(lines) {
+		return content, nil
+	}
+
+	copyrightHeader, err := f.config.GetCopyrightHeader(ext)
+	if err != nil {
+		return nil, err
+	}
+
+	licenseHeader, err := f.config.GetLicenseHeader(ext)
+	if err != nil {
+		return nil, err
+	}
+
+	var result []string
+	startLine := 0
+	thirdPartyLines := []string{}
+
+	// Handle shebang (same as fixFile)
+	if hasShebang(lines) {
+		result = append(result, lines[0])
+		startLine = 1
+	}
+
+	// Determine scan limit (same as fixFile)
+	maxScan := len(lines)
+	if f.config.Detection.MaxScanLines > 0 {
+		maxScan = min(startLine+f.config.Detection.MaxScanLines, len(lines))
+	}
+
+	// Scan for third-party copyrights (same as fixFile)
+	for i := startLine; i < maxScan; i++ {
+		line := lines[i]
+		if f.config.IsThirdPartyCopyright(line) {
+			thirdPartyLines = append(thirdPartyLines, line)
+		}
+	}
+
+	// Handle third-party copyrights (same as fixFile)
+	switch f.config.ThirdParty.Action {
+	case "above":
+		result = append(result, copyrightHeader)
+		if licenseHeader != "" {
+			result = append(result, licenseHeader)
+		}
+		result = append(result, thirdPartyLines...)
+		result = append(result, "")
+	case "below":
+		result = append(result, thirdPartyLines...)
+		result = append(result, copyrightHeader)
+		if licenseHeader != "" {
+			result = append(result, licenseHeader)
+		}
+		result = append(result, "")
+	case "replace":
+		result = append(result, copyrightHeader)
+		if licenseHeader != "" {
+			result = append(result, licenseHeader)
+		}
+		result = append(result, "")
+	default: // "leave"
+		result = append(result, copyrightHeader)
+		if licenseHeader != "" {
+			result = append(result, licenseHeader)
+		}
+		result = append(result, "")
+	}
+
+	// Process remaining content (same logic as fixFile)
+	skipNext := false
+	for i := startLine; i < len(lines); i++ {
+		line := lines[i]
+		inHeaderArea := i < maxScan
+
+		if inHeaderArea {
+			if strings.TrimSpace(line) == strings.TrimSpace(copyrightHeader) ||
+				(licenseHeader != "" && strings.TrimSpace(line) == strings.TrimSpace(licenseHeader)) {
+				skipNext = true
+				continue
+			}
+
+			if f.config.ShouldReplace(line) {
+				skipNext = true
+				continue
+			}
+
+			if f.config.IsThirdPartyCopyright(line) && f.config.ThirdParty.Action != "leave" {
+				skipNext = true
+				continue
+			}
+
+			// Only skip blank lines immediately following a removed header line
+			if skipNext && strings.TrimSpace(line) == "" {
+				skipNext = false
+				continue
+			}
+		}
+
+		skipNext = false
+		result = append(result, line)
+	}
+
+	output := strings.Join(result, "\n")
+
+	// Preserve original trailing newline behavior
+	if strings.HasSuffix(string(content), "\n") && !strings.HasSuffix(output, "\n") {
+		output += "\n"
+	}
+
+	return []byte(output), nil
 }

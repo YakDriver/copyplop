@@ -41,7 +41,7 @@ func TestGetCopyrightHeader(t *testing.T) {
 					CommentStyles: map[string]string{".go": "//"},
 				},
 			},
-			ext:      ".go",
+			ext: ".go",
 		},
 		{
 			name: "Shell script with hash comment",
@@ -76,8 +76,7 @@ func TestGetCopyrightHeader(t *testing.T) {
 func TestShouldReplace(t *testing.T) {
 	config := Config{
 		Detection: Detection{
-			ReplacePatterns: []string{
-			},
+			ReplacePatterns: []string{},
 		},
 	}
 
@@ -150,8 +149,7 @@ func TestIsGenerated(t *testing.T) {
 func TestIsThirdPartyCopyright_Precedence(t *testing.T) {
 	config := Config{
 		Detection: Detection{
-			ReplacePatterns: []string{
-			},
+			ReplacePatterns: []string{},
 		},
 		ThirdParty: ThirdParty{
 			Patterns: []string{

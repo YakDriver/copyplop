@@ -94,10 +94,7 @@ func (c *Checker) checkFile(file string) *Issue {
 	// Determine scan limit
 	maxScan := len(lines)
 	if c.config.Detection.MaxScanLines > 0 {
-		maxScan = startLine + c.config.Detection.MaxScanLines
-		if maxScan > len(lines) {
-			maxScan = len(lines)
-		}
+		maxScan = min(startLine+c.config.Detection.MaxScanLines, len(lines))
 	}
 
 	// Check if copyright and license exist in header area
