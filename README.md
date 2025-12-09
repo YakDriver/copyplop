@@ -9,6 +9,7 @@ A fully configurable Go CLI tool for managing copyright headers in source code f
 
 - **Fully configurable**: Define any copyright format via templates
 - **Optional licensing**: Enable/disable SPDX license headers
+- **Path filtering**: Include/exclude files using powerful glob patterns with `**` support
 - **Multiple file types**: Support any file extension with custom comment styles
 - **Smart detection**: Skip generated files, replace specific patterns
 - **Third-party copyright handling**: Configure how to handle existing third-party copyrights
@@ -104,6 +105,50 @@ package main
 //Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
 // Copyright IBM Corp. 2014, 2025
 package main
+```
+
+## Path Filtering
+
+Control which files to process using include/exclude patterns with full doublestar glob support:
+
+```yaml
+files:
+  # Only process specific paths
+  include_paths:
+    - "internal/service/[a-g]*"     # Services starting with a-g
+    - "cmd/**"                      # All files under cmd/
+    
+  # Skip specific paths  
+  exclude_paths:
+    - ".github/**"                  # Skip all GitHub workflows
+    - "internal/service/s3*"        # Skip S3-related services
+    - "**/*_test.go"               # Skip all test files
+```
+
+### Pattern Logic
+- **No filters**: Process all files
+- **Include only**: Process only matching files
+- **Exclude only**: Process all except matching files  
+- **Both**: Process files that match includes AND don't match excludes
+
+### Supported Patterns
+- `*` - Single-level wildcard
+- `**` - Recursive directory matching
+- `[a-g]` - Character ranges
+- `{foo,bar}` - Alternatives
+- `internal/service/*` - Auto-expands to match subdirectories
+
+### Examples
+```bash
+# Process only EC2 and ECS services
+include_paths: ["internal/service/ec[2s]*"]
+
+# Skip generated and test files
+exclude_paths: ["**/*generated*", "**/*_test.go"]
+
+# Process infrastructure code only
+include_paths: ["internal/**", "cmd/**"]
+exclude_paths: [".github/**", "examples/**"]
 ```
 
 ## Usage

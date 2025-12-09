@@ -5,10 +5,11 @@ package config
 
 import (
 	"bytes"
-	"path/filepath"
 	"regexp"
 	"strings"
 	"text/template"
+
+	"github.com/bmatcuk/doublestar/v4"
 )
 
 type Config struct {
@@ -189,24 +190,25 @@ func (c *Config) shouldProcessPath(file string) bool {
 	return true
 }
 
-// matchesPath checks if a file path matches a pattern, supporting directory patterns
+// matchesPath checks if a file path matches a pattern, supporting doublestar glob patterns
 func matchesPath(pattern, path string) bool {
-	// Direct match
-	if matched, _ := filepath.Match(pattern, path); matched {
+	// Try exact match first
+	if matched, _ := doublestar.Match(pattern, path); matched {
 		return true
 	}
 	
-	// Check if pattern matches any parent directory path
-	dir := filepath.Dir(path)
-	for dir != "." && dir != "/" {
-		if matched, _ := filepath.Match(pattern, dir); matched {
+	// Handle directory patterns by converting /* to /** for subdirectory matching
+	if strings.HasSuffix(pattern, "/*") {
+		// Convert "internal/service/*" to "internal/service/**" to match subdirectories
+		dirPattern := strings.TrimSuffix(pattern, "/*") + "/**"
+		if matched, _ := doublestar.Match(dirPattern, path); matched {
 			return true
 		}
-		// Also check if the pattern matches the directory plus wildcard
-		if matched, _ := filepath.Match(pattern, dir+"/*"); matched {
+	} else if !strings.HasSuffix(pattern, "/**") {
+		// For patterns not ending with /** or /*, try adding /** to match files in subdirectories
+		if matched, _ := doublestar.Match(pattern+"/**", path); matched {
 			return true
 		}
-		dir = filepath.Dir(dir)
 	}
 	
 	return false

@@ -3,6 +3,7 @@ module github.com/YakDriver/copyplop
 go 1.24.0
 
 require (
+	github.com/bmatcuk/doublestar/v4 v4.9.1
 	github.com/schollz/progressbar/v3 v3.18.0
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0

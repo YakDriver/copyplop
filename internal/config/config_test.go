@@ -245,6 +245,30 @@ func TestConfig_shouldProcessPath(t *testing.T) {
 			file:         "internal/service/ec2/service.go",
 			want:         true,
 		},
+		{
+			name:         "doublestar exclude - match",
+			excludePaths: []string{".github/**"},
+			file:         ".github/workflows/ci.yml",
+			want:         false,
+		},
+		{
+			name:         "doublestar exclude - no match",
+			excludePaths: []string{".github/**"},
+			file:         "internal/service/ec2/service.go",
+			want:         true,
+		},
+		{
+			name:         "doublestar include - match",
+			includePaths: []string{"internal/**/test*"},
+			file:         "internal/service/ec2/test_helper.go",
+			want:         true,
+		},
+		{
+			name:         "doublestar include - no match",
+			includePaths: []string{"internal/**/test*"},
+			file:         "internal/service/ec2/service.go",
+			want:         false,
+		},
 	}
 
 	for _, tt := range tests {
