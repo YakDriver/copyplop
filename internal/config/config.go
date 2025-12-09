@@ -5,6 +5,7 @@ package config
 
 import (
 	"bytes"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"text/template"
@@ -34,6 +35,8 @@ type License struct {
 type Files struct {
 	Extensions       []string          `yaml:"extensions" mapstructure:"extensions"`
 	IgnorePatterns   []string          `yaml:"ignore_patterns" mapstructure:"ignore_patterns"`
+	IncludePaths     []string          `yaml:"include_paths" mapstructure:"include_paths"`
+	ExcludePaths     []string          `yaml:"exclude_paths" mapstructure:"exclude_paths"`
 	CommentStyles    map[string]string `yaml:"comment_styles" mapstructure:"comment_styles"`
 	BelowFrontmatter []string          `yaml:"below_frontmatter" mapstructure:"below_frontmatter"`
 	GitTracked       bool              `yaml:"git_tracked" mapstructure:"git_tracked"`
@@ -133,12 +136,79 @@ func (c *Config) GetLicenseHeader(ext string) (string, error) {
 }
 
 func (c *Config) ShouldProcess(file string) bool {
-	// Check for compound extensions first (e.g., .html.markdown)
+	// Check extension first
+	hasValidExt := false
 	for _, validExt := range c.Files.Extensions {
 		if strings.HasSuffix(file, validExt) {
-			return true
+			hasValidExt = true
+			break
 		}
 	}
+	if !hasValidExt {
+		return false
+	}
+
+	// Apply path filtering logic
+	return c.shouldProcessPath(file)
+}
+
+// shouldProcessPath implements the include/exclude path logic:
+// - No includes + no excludes = process everything
+// - Has includes = only process files matching includes
+// - Has excludes = process everything except excludes
+// - Has both = process files that match includes AND don't match excludes
+func (c *Config) shouldProcessPath(file string) bool {
+	hasIncludes := len(c.Files.IncludePaths) > 0
+	hasExcludes := len(c.Files.ExcludePaths) > 0
+
+	// No path filters = process everything
+	if !hasIncludes && !hasExcludes {
+		return true
+	}
+
+	// Check excludes first (if any)
+	if hasExcludes {
+		for _, pattern := range c.Files.ExcludePaths {
+			if matchesPath(pattern, file) {
+				return false
+			}
+		}
+	}
+
+	// Check includes (if any)
+	if hasIncludes {
+		for _, pattern := range c.Files.IncludePaths {
+			if matchesPath(pattern, file) {
+				return true
+			}
+		}
+		return false // Has includes but file didn't match any
+	}
+
+	// Has excludes but no includes, and file didn't match excludes
+	return true
+}
+
+// matchesPath checks if a file path matches a pattern, supporting directory patterns
+func matchesPath(pattern, path string) bool {
+	// Direct match
+	if matched, _ := filepath.Match(pattern, path); matched {
+		return true
+	}
+	
+	// Check if pattern matches any parent directory path
+	dir := filepath.Dir(path)
+	for dir != "." && dir != "/" {
+		if matched, _ := filepath.Match(pattern, dir); matched {
+			return true
+		}
+		// Also check if the pattern matches the directory plus wildcard
+		if matched, _ := filepath.Match(pattern, dir+"/*"); matched {
+			return true
+		}
+		dir = filepath.Dir(dir)
+	}
+	
 	return false
 }
 

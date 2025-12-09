@@ -193,3 +193,71 @@ func TestIsThirdPartyCopyright_Precedence(t *testing.T) {
 		})
 	}
 }
+
+func TestConfig_shouldProcessPath(t *testing.T) {
+	tests := []struct {
+		name         string
+		includePaths []string
+		excludePaths []string
+		file         string
+		want         bool
+	}{
+		{
+			name: "no filters - process everything",
+			file: "internal/service/ec2/service.go",
+			want: true,
+		},
+		{
+			name:         "include only - match",
+			includePaths: []string{"internal/service/[a-g]*"},
+			file:         "internal/service/ec2/service.go",
+			want:         true,
+		},
+		{
+			name:         "include only - no match",
+			includePaths: []string{"internal/service/[a-g]*"},
+			file:         "internal/service/s3/service.go",
+			want:         false,
+		},
+		{
+			name:         "exclude only - match exclude",
+			excludePaths: []string{"internal/service/s3*"},
+			file:         "internal/service/s3/service.go",
+			want:         false,
+		},
+		{
+			name:         "exclude only - no match exclude",
+			excludePaths: []string{"internal/service/s3*"},
+			file:         "internal/service/ec2/service.go",
+			want:         true,
+		},
+		{
+			name:         "both - match include and exclude",
+			includePaths: []string{"internal/service/*"},
+			excludePaths: []string{"internal/service/s3*"},
+			file:         "internal/service/s3/service.go",
+			want:         false,
+		},
+		{
+			name:         "both - match include, no exclude",
+			includePaths: []string{"internal/service/*"},
+			excludePaths: []string{"internal/service/s3*"},
+			file:         "internal/service/ec2/service.go",
+			want:         true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &Config{
+				Files: Files{
+					IncludePaths: tt.includePaths,
+					ExcludePaths: tt.excludePaths,
+				},
+			}
+			if got := c.shouldProcessPath(tt.file); got != tt.want {
+				t.Errorf("shouldProcessPath() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
