@@ -1,0 +1,23 @@
+# HashiCorp style configuration
+copyright:
+  holder: "HashiCorp, Inc."
+  format: "Copyright (c) {{.Holder}}"
+  
+license:
+  enabled: true
+  identifier: "MPL-2.0"
+  format: "SPDX-License-Identifier: {{.Identifier}}"
+
+files:
+  extensions: [".go", ".sh", ".py", ".hcl", ".tf"]
+  comment_styles:
+    ".go": "//"
+    ".sh": "#"
+    ".py": "#"
+    ".hcl": "#"
+    ".tf": "#"
+
+detection:
+  skip_generated: true
+  generated_patterns: ["Code generated", "DO NOT EDIT"]
+  replace_patterns: ["Copyright.*HashiCorp"]

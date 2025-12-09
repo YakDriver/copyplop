@@ -1,0 +1,28 @@
+# General third-party pattern with replacement precedence
+copyright:
+  holder: "IBM Corp."
+  start_year: 2014
+  current_year: 2025
+  format: "Copyright {{.Holder}} {{.StartYear}}, {{.CurrentYear}}"
+  
+license:
+  enabled: true
+  identifier: "MPL-2.0"
+  format: "SPDX-License-Identifier: {{.Identifier}}"
+
+files:
+  extensions: [".go"]
+  comment_styles:
+    ".go": "//"
+
+detection:
+  # These get REPLACED (take precedence over third-party)
+  replace_patterns:
+    - "Copyright.*HashiCorp"
+    - "Copyright \\(c\\).*HashiCorp"
+
+third_party:
+  action: "above"
+  # General pattern catches any copyright, but replacement patterns take precedence
+  patterns:
+    - "Copyright.*[a-zA-Z0-9].*"

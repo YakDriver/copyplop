@@ -1,0 +1,20 @@
+# Simple configuration - no license, just copyright
+copyright:
+  holder: "Acme Corp"
+  current_year: 2025
+  format: "Copyright {{.CurrentYear}} {{.Holder}}"
+  
+license:
+  enabled: false
+
+files:
+  extensions: [".go", ".js", ".py"]
+  comment_styles:
+    ".go": "//"
+    ".js": "//"
+    ".py": "#"
+
+detection:
+  skip_generated: true
+  generated_patterns: ["Code generated", "DO NOT EDIT", "Auto-generated"]
+  replace_patterns: ["Copyright.*Acme"]

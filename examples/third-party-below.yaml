@@ -1,0 +1,25 @@
+# Add IBM copyright BELOW third-party copyrights  
+copyright:
+  holder: "IBM Corp."
+  start_year: 2014
+  current_year: 2025
+  format: "Copyright {{.Holder}} {{.StartYear}}, {{.CurrentYear}}"
+  
+license:
+  enabled: true
+  identifier: "MPL-2.0"
+  format: "SPDX-License-Identifier: {{.Identifier}}"
+
+files:
+  extensions: [".go"]
+  comment_styles:
+    ".go": "//"
+
+detection:
+  replace_patterns: ["Copyright.*HashiCorp"]
+
+third_party:
+  action: "below"  # Third-party first, then IBM copyright
+  patterns:
+    - "Copyright.*Oracle"
+    - "Copyright.*\\(c\\).*Oracle"
