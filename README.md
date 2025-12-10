@@ -141,6 +141,8 @@ Smart extensions analyze file content to determine the actual file type:
 | **HCL/Terraform** | `resource "`, `data "`, `variable "`, `output "` |
 | **YAML** | `---`, `key: value` patterns |
 
+**Binary File Safety:** Files with null bytes are automatically skipped to prevent processing binary content.
+
 ### Example Use Cases
 
 ```yaml

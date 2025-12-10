@@ -84,6 +84,10 @@ func (f *Fixer) fixFile(file string) bool {
 	// For smart extensions, detect the actual file type from content
 	if isSmartExt {
 		detectedExt := f.config.DetectSmartExtensionType(content, file)
+		if detectedExt == "" {
+			// Binary file detected - skip processing
+			return false
+		}
 		ext = detectedExt
 	}
 

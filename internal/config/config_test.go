@@ -344,6 +344,18 @@ func TestDetectSmartExtensionType(t *testing.T) {
 			filename: "unknown.tmpl",
 			expected: ".go",
 		},
+		{
+			name:     "Binary file with null bytes",
+			content:  "binary\x00content\x00here",
+			filename: "binary.gtpl",
+			expected: "",
+		},
+		{
+			name:     "Binary file at start",
+			content:  "\x00\x01\x02\x03binary data",
+			filename: "image.tmpl",
+			expected: "",
+		},
 	}
 	
 	for _, tt := range tests {
