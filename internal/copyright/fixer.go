@@ -70,6 +70,22 @@ func (f *Fixer) fixFile(file string) bool {
 			break
 		}
 	}
+	
+	// Check for smart extensions and detect actual content type
+	isSmartExt := false
+	for _, smartExt := range f.config.Files.SmartExtensions {
+		if strings.HasSuffix(file, smartExt) && len(smartExt) > len(ext) {
+			ext = smartExt
+			isSmartExt = true
+			break
+		}
+	}
+	
+	// For smart extensions, detect the actual file type from content
+	if isSmartExt {
+		detectedExt := f.config.DetectSmartExtensionType(content, file)
+		ext = detectedExt
+	}
 
 	copyrightHeader, err := f.config.GetCopyrightHeader(ext)
 	if err != nil {

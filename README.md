@@ -107,6 +107,54 @@ package main
 package main
 ```
 
+## Smart Extensions
+
+Handle template files that could contain different content types using smart content detection:
+
+```yaml
+files:
+  # Regular extensions with known comment styles
+  extensions: [".go", ".py", ".md"]
+  
+  # Smart extensions detect content type automatically
+  smart_extensions: [".gtpl", ".tmpl"]
+  
+  comment_styles:
+    ".go": "//"
+    ".py": "#"
+    ".md": "<!--"
+```
+
+### How Smart Extensions Work
+
+Smart extensions analyze file content to determine the actual file type:
+
+- **`.gtpl`** (Go templates) - Could be Go code, Markdown, HCL, YAML, etc.
+- **`.tmpl`** (Generic templates) - Detects the underlying content type
+
+### Detection Patterns
+
+| Content Type | Detection Patterns |
+|--------------|-------------------|
+| **Go** | `package `, `func `, `import (`, `type ... struct` |
+| **Markdown** | `# `, `## `, ` ``` `, `[text](url)` |
+| **HCL/Terraform** | `resource "`, `data "`, `variable "`, `output "` |
+| **YAML** | `---`, `key: value` patterns |
+
+### Example Use Cases
+
+```yaml
+# For terraform-provider-aws templates
+smart_extensions: [".gtpl", ".tmpl"]
+
+# Templates will be processed with appropriate comment style:
+# - service.go.gtpl → detected as Go → uses "//" comments  
+# - README.md.tmpl → detected as Markdown → uses "<!--" comments
+# - main.tf.gtpl → detected as HCL → uses "#" comments
+```
+
+**Fallback:** Unknown content defaults to Go (configurable per project needs).
+
 ## Path Filtering
 
 Control which files to process using include/exclude patterns with full doublestar glob support:

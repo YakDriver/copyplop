@@ -35,6 +35,7 @@ type License struct {
 
 type Files struct {
 	Extensions       []string          `yaml:"extensions" mapstructure:"extensions"`
+	SmartExtensions  []string          `yaml:"smart_extensions" mapstructure:"smart_extensions"`
 	IgnorePatterns   []string          `yaml:"ignore_patterns" mapstructure:"ignore_patterns"`
 	IncludePaths     []string          `yaml:"include_paths" mapstructure:"include_paths"`
 	ExcludePaths     []string          `yaml:"exclude_paths" mapstructure:"exclude_paths"`
@@ -139,12 +140,25 @@ func (c *Config) GetLicenseHeader(ext string) (string, error) {
 func (c *Config) ShouldProcess(file string) bool {
 	// Check extension first
 	hasValidExt := false
+	
+	// Check regular extensions
 	for _, validExt := range c.Files.Extensions {
 		if strings.HasSuffix(file, validExt) {
 			hasValidExt = true
 			break
 		}
 	}
+	
+	// Check smart extensions
+	if !hasValidExt {
+		for _, smartExt := range c.Files.SmartExtensions {
+			if strings.HasSuffix(file, smartExt) {
+				hasValidExt = true
+				break
+			}
+		}
+	}
+	
 	if !hasValidExt {
 		return false
 	}
@@ -252,4 +266,47 @@ func (c *Config) IsThirdPartyCopyright(line string) bool {
 		}
 	}
 	return false
+}
+
+// DetectSmartExtensionType analyzes content to determine the actual file type for smart extensions
+func (c *Config) DetectSmartExtensionType(content []byte, filename string) string {
+	contentStr := string(content)
+	
+	// Check for Go code patterns
+	if strings.Contains(contentStr, "package ") ||
+		strings.Contains(contentStr, "func ") ||
+		strings.Contains(contentStr, "import (") ||
+		strings.Contains(contentStr, "type ") && strings.Contains(contentStr, "struct") {
+		return ".go"
+	}
+	
+	// Check for Markdown patterns
+	if strings.Contains(contentStr, "# ") ||
+		strings.Contains(contentStr, "## ") ||
+		strings.Contains(contentStr, "```") ||
+		strings.Contains(contentStr, "[") && strings.Contains(contentStr, "](") {
+		return ".md"
+	}
+	
+	// Check for HCL/Terraform patterns
+	if strings.Contains(contentStr, "resource \"") ||
+		strings.Contains(contentStr, "data \"") ||
+		strings.Contains(contentStr, "variable \"") ||
+		strings.Contains(contentStr, "output \"") {
+		return ".tf"
+	}
+	
+	// Check for YAML patterns
+	if strings.Contains(contentStr, "---") ||
+		(strings.Contains(contentStr, ":") && strings.Contains(contentStr, "\n")) {
+		return ".yml"
+	}
+	
+	// Default fallback - could be based on filename patterns or directory
+	if strings.Contains(filename, "markdown") || strings.Contains(filename, "md") {
+		return ".md"
+	}
+	
+	// Default to Go for unknown templates in terraform-provider-aws
+	return ".go"
 }

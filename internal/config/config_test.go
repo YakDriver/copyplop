@@ -286,3 +286,72 @@ func TestConfig_shouldProcessPath(t *testing.T) {
 		})
 	}
 }
+
+func TestDetectSmartExtensionType(t *testing.T) {
+	config := &Config{}
+	
+	tests := []struct {
+		name     string
+		content  string
+		filename string
+		expected string
+	}{
+		{
+			name:     "Go code with package",
+			content:  "package main\n\nfunc main() {}",
+			filename: "test.gtpl",
+			expected: ".go",
+		},
+		{
+			name:     "Go code with import",
+			content:  "import (\n\t\"fmt\"\n)",
+			filename: "test.tmpl",
+			expected: ".go",
+		},
+		{
+			name:     "Markdown with headers",
+			content:  "# Title\n\n## Subtitle\n\nSome content",
+			filename: "test.gtpl",
+			expected: ".md",
+		},
+		{
+			name:     "Markdown with links",
+			content:  "Check out [this link](https://example.com)",
+			filename: "test.tmpl",
+			expected: ".md",
+		},
+		{
+			name:     "Terraform HCL",
+			content:  "resource \"aws_instance\" \"example\" {\n  ami = \"ami-123\"\n}",
+			filename: "test.gtpl",
+			expected: ".tf",
+		},
+		{
+			name:     "YAML content",
+			content:  "---\nkey: value\nlist:\n  - item1\n  - item2",
+			filename: "test.tmpl",
+			expected: ".yml",
+		},
+		{
+			name:     "Filename hint for markdown",
+			content:  "Some generic content",
+			filename: "markdown_template.gtpl",
+			expected: ".md",
+		},
+		{
+			name:     "Default to Go",
+			content:  "some unknown content",
+			filename: "unknown.tmpl",
+			expected: ".go",
+		},
+	}
+	
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := config.DetectSmartExtensionType([]byte(tt.content), tt.filename)
+			if result != tt.expected {
+				t.Errorf("DetectSmartExtensionType() = %v, want %v", result, tt.expected)
+			}
+		})
+	}
+}
