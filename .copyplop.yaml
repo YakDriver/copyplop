@@ -17,6 +17,12 @@ files:
   # Set to false to process all files in directory
   git_tracked: true
   
+  # Path filtering (optional) - supports doublestar glob patterns
+  # include_paths: ["internal/service/[a-g]*"]  # Only process paths matching these patterns
+  # exclude_paths: [".github/**", "internal/service/s3*"]  # Skip paths matching these patterns
+  # Patterns support: *, **, [a-z], {foo,bar}, etc.
+  # Logic: no filters = all files, includes = only those, excludes = all except those, both = includes AND not excludes
+  
   extensions:
     - ".go"
     - ".sh" 
