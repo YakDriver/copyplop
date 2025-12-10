@@ -41,7 +41,8 @@ func TestGetCopyrightHeader(t *testing.T) {
 					CommentStyles: map[string]string{".go": "//"},
 				},
 			},
-			ext: ".go",
+			ext:      ".go",
+			expected: "// Copyright (c) HashiCorp, Inc.",
 		},
 		{
 			name: "Shell script with hash comment",
