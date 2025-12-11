@@ -33,14 +33,22 @@ type License struct {
 	Format     string `yaml:"format" mapstructure:"format"`
 }
 
+type SmartExtensionIndicators struct {
+	Extension string   `yaml:"extension" mapstructure:"extension"`
+	Patterns  []string `yaml:"patterns" mapstructure:"patterns"`
+	Filenames []string `yaml:"filenames" mapstructure:"filenames"`
+}
+
 type Files struct {
-	Extensions       []string          `yaml:"extensions" mapstructure:"extensions"`
-	IgnorePatterns   []string          `yaml:"ignore_patterns" mapstructure:"ignore_patterns"`
-	IncludePaths     []string          `yaml:"include_paths" mapstructure:"include_paths"`
-	ExcludePaths     []string          `yaml:"exclude_paths" mapstructure:"exclude_paths"`
-	CommentStyles    map[string]string `yaml:"comment_styles" mapstructure:"comment_styles"`
-	BelowFrontmatter []string          `yaml:"below_frontmatter" mapstructure:"below_frontmatter"`
-	GitTracked       bool              `yaml:"git_tracked" mapstructure:"git_tracked"`
+	Extensions               []string                   `yaml:"extensions" mapstructure:"extensions"`
+	SmartExtensions          []string                   `yaml:"smart_extensions" mapstructure:"smart_extensions"`
+	SmartExtensionIndicators []SmartExtensionIndicators `yaml:"smart_extension_indicators" mapstructure:"smart_extension_indicators"`
+	IgnorePatterns           []string                   `yaml:"ignore_patterns" mapstructure:"ignore_patterns"`
+	IncludePaths             []string                   `yaml:"include_paths" mapstructure:"include_paths"`
+	ExcludePaths             []string                   `yaml:"exclude_paths" mapstructure:"exclude_paths"`
+	CommentStyles            map[string]string          `yaml:"comment_styles" mapstructure:"comment_styles"`
+	BelowFrontmatter         []string                   `yaml:"below_frontmatter" mapstructure:"below_frontmatter"`
+	GitTracked               bool                       `yaml:"git_tracked" mapstructure:"git_tracked"`
 }
 
 type Detection struct {
@@ -139,12 +147,25 @@ func (c *Config) GetLicenseHeader(ext string) (string, error) {
 func (c *Config) ShouldProcess(file string) bool {
 	// Check extension first
 	hasValidExt := false
+
+	// Check regular extensions
 	for _, validExt := range c.Files.Extensions {
 		if strings.HasSuffix(file, validExt) {
 			hasValidExt = true
 			break
 		}
 	}
+
+	// Check smart extensions
+	if !hasValidExt {
+		for _, smartExt := range c.Files.SmartExtensions {
+			if strings.HasSuffix(file, smartExt) {
+				hasValidExt = true
+				break
+			}
+		}
+	}
+
 	if !hasValidExt {
 		return false
 	}
@@ -196,7 +217,7 @@ func matchesPath(pattern, path string) bool {
 	if matched, _ := doublestar.Match(pattern, path); matched {
 		return true
 	}
-	
+
 	// Handle directory patterns by converting /* to /** for subdirectory matching
 	if strings.HasSuffix(pattern, "/*") {
 		// Convert "internal/service/*" to "internal/service/**" to match subdirectories
@@ -210,7 +231,7 @@ func matchesPath(pattern, path string) bool {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -252,4 +273,108 @@ func (c *Config) IsThirdPartyCopyright(line string) bool {
 		}
 	}
 	return false
+}
+
+// DetectSmartExtensionType analyzes content to determine the actual file type for smart extensions
+func (c *Config) DetectSmartExtensionType(content []byte, filename string) string {
+	// Skip binary files - check for null bytes in first 512 bytes
+	checkLen := min(len(content), 512)
+	for i := range checkLen {
+		if content[i] == 0 {
+			return ""
+		}
+	}
+
+	contentStr := string(content)
+
+	// Use scoring system if indicators are configured
+	if len(c.Files.SmartExtensionIndicators) > 0 {
+		return c.detectByScoring(contentStr, filename)
+	}
+
+	// Fallback to original detection logic
+	return c.detectByPatterns(contentStr, filename)
+}
+
+// detectByScoring uses configurable indicators to score each extension type
+func (c *Config) detectByScoring(content, filename string) string {
+	scores := make(map[string]int)
+
+	for _, indicator := range c.Files.SmartExtensionIndicators {
+		score := 0
+
+		// Check content patterns
+		for _, pattern := range indicator.Patterns {
+			if strings.Contains(content, pattern) {
+				score++
+			}
+		}
+
+		// Check filename patterns
+		for _, filenamePattern := range indicator.Filenames {
+			if strings.Contains(filename, filenamePattern) {
+				score++
+			}
+		}
+
+		scores[indicator.Extension] = score
+	}
+
+	// Find extension with highest score
+	maxScore := 0
+	bestExt := ".go" // default
+	for ext, score := range scores {
+		if score > maxScore {
+			maxScore = score
+			bestExt = ext
+		}
+	}
+
+	return bestExt
+}
+
+// detectByPatterns uses the original hardcoded detection logic
+func (c *Config) detectByPatterns(content, filename string) string {
+	// Check for Go code patterns
+	if strings.Contains(content, "package ") ||
+		strings.Contains(content, "func ") ||
+		strings.Contains(content, "import (") ||
+		strings.Contains(content, "type ") && strings.Contains(content, "struct") {
+		return ".go"
+	}
+
+	// Check for HCL/Terraform patterns (before Markdown to avoid # comment confusion)
+	if strings.Contains(content, "resource \"") ||
+		strings.Contains(content, "data \"") ||
+		strings.Contains(content, "variable \"") ||
+		strings.Contains(content, "output \"") ||
+		strings.Contains(content, "provider \"") ||
+		strings.Contains(content, "terraform {") ||
+		strings.Contains(filename, ".tf.") || // Files like test.tf.gtpl
+		strings.Contains(filename, "terraform") {
+		return ".tf"
+	}
+
+	// Check for Markdown patterns (more specific to avoid HCL # comments)
+	if strings.Contains(content, "## ") ||
+		strings.Contains(content, "### ") ||
+		strings.Contains(content, "```") ||
+		strings.Contains(content, "[") && strings.Contains(content, "](") ||
+		(strings.Contains(content, "# ") && (strings.Contains(content, "layout:") || strings.Contains(content, "subcategory:"))) {
+		return ".md"
+	}
+
+	// Check for YAML patterns
+	if strings.Contains(content, "---") ||
+		(strings.Contains(content, ":") && strings.Contains(content, "\n")) {
+		return ".yml"
+	}
+
+	// Default fallback - could be based on filename patterns or directory
+	if strings.Contains(filename, "markdown") || strings.Contains(filename, "md") {
+		return ".md"
+	}
+
+	// Default to Go for unknown templates in terraform-provider-aws
+	return ".go"
 }

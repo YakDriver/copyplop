@@ -37,7 +37,7 @@ func init() {
 	rootCmd.PersistentFlags().StringP("path", "p", ".", "path to process")
 
 	// Bind flags to viper
-	viper.BindPFlag("path", rootCmd.PersistentFlags().Lookup("path"))
+	_ = viper.BindPFlag("path", rootCmd.PersistentFlags().Lookup("path"))
 }
 
 func initConfig() {
