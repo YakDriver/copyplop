@@ -70,17 +70,17 @@ func (f *Fixer) fixFile(file string) bool {
 			break
 		}
 	}
-	
+
 	// Check for smart extensions and detect actual content type
 	isSmartExt := false
 	for _, smartExt := range f.config.Files.SmartExtensions {
-		if strings.HasSuffix(file, smartExt) && len(smartExt) > len(ext) {
+		if strings.HasSuffix(file, smartExt) && len(smartExt) >= len(ext) {
 			ext = smartExt
 			isSmartExt = true
 			break
 		}
 	}
-	
+
 	// For smart extensions, detect the actual file type from content
 	if isSmartExt {
 		detectedExt := f.config.DetectSmartExtensionType(content, file)
@@ -113,8 +113,14 @@ func (f *Fixer) fixFile(file string) bool {
 		startLine = 1
 	}
 
-	// Handle frontmatter
-	frontmatterEnd := getFrontmatterEnd(lines, f.config, file)
+	// Handle frontmatter - use detected extension for smart extensions
+	frontmatterFile := file
+	if isSmartExt {
+		// For smart extensions, check frontmatter based on detected type
+		// Use a filename that will match the BelowFrontmatter config
+		frontmatterFile = "dummy" + ext
+	}
+	frontmatterEnd := getFrontmatterEnd(lines, f.config, frontmatterFile)
 	if frontmatterEnd > startLine {
 		// Add frontmatter to result
 		result = append(result, lines[startLine:frontmatterEnd]...)
@@ -157,7 +163,7 @@ func (f *Fixer) fixFile(file string) bool {
 			result = append(result, licenseHeader)
 		}
 		result = append(result, thirdPartyLines...)
-		result = append(result, "")
+		addBlankLineIfNeeded(&result, lines, startLine)
 	case "below":
 		// Add third-party first, then our copyright
 		result = append(result, thirdPartyLines...)
@@ -165,21 +171,21 @@ func (f *Fixer) fixFile(file string) bool {
 		if licenseHeader != "" {
 			result = append(result, licenseHeader)
 		}
-		result = append(result, "")
+		addBlankLineIfNeeded(&result, lines, startLine)
 	case "replace":
 		// Replace third-party with our copyright
 		result = append(result, copyrightHeader)
 		if licenseHeader != "" {
 			result = append(result, licenseHeader)
 		}
-		result = append(result, "")
+		addBlankLineIfNeeded(&result, lines, startLine)
 	default: // "leave" or unspecified
 		// Just add our copyright, leave third-party as-is
 		result = append(result, copyrightHeader)
 		if licenseHeader != "" {
 			result = append(result, licenseHeader)
 		}
-		result = append(result, "")
+		addBlankLineIfNeeded(&result, lines, startLine)
 	}
 
 	// Process remaining content, only removing copyrights from header area
@@ -234,6 +240,20 @@ func (f *Fixer) fixFile(file string) bool {
 	}
 
 	return false
+}
+
+// addBlankLineIfNeeded adds a blank line only if the next content line isn't already blank
+func addBlankLineIfNeeded(result *[]string, lines []string, startLine int) {
+	// Check if the next line to be processed is blank
+	nextLineIsBlank := false
+	if startLine < len(lines) && strings.TrimSpace(lines[startLine]) == "" {
+		nextLineIsBlank = true
+	}
+
+	// Only add blank line if next line isn't already blank
+	if !nextLineIsBlank {
+		*result = append(*result, "")
+	}
 }
 
 // ProcessContent applies the same header normalization logic as fixFile but on in-memory content

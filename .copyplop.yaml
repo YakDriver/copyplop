@@ -39,6 +39,18 @@ files:
   #   - ".gtpl"    # Go templates - detects Go, Markdown, HCL, etc.
   #   - ".tmpl"    # Generic templates - detects actual content type
   
+  # Smart extension indicators (scoring system for better detection)
+  # smart_extension_indicators:
+  #   - extension: ".md"
+  #     patterns: ["## ", "### ", "```", "layout:", "subcategory:"]
+  #     filenames: ["markdown", "md"]
+  #   - extension: ".tf"  
+  #     patterns: ["resource \"", "variable \"", "output \"", "provider \""]
+  #     filenames: [".tf.", "terraform"]
+  #   - extension: ".go"
+  #     patterns: ["package ", "func ", "import ("]
+  #     filenames: []
+  
   comment_styles:
     go: "//"
     sh: "#"
