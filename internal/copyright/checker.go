@@ -45,7 +45,7 @@ func (c *Checker) Check(path string) ([]Issue, error) {
 		if issue := c.checkFile(file); issue != nil {
 			issues = append(issues, *issue)
 		}
-		bar.Add(1)
+		_ = bar.Add(1)
 	}
 
 	return issues, nil

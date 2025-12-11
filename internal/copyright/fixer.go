@@ -45,7 +45,7 @@ func (f *Fixer) Fix(path string) (*FixResult, error) {
 		if f.fixFile(file) {
 			result.Fixed++
 		}
-		bar.Add(1)
+		_ = bar.Add(1)
 	}
 
 	return result, nil
@@ -235,7 +235,7 @@ func (f *Fixer) fixFile(file string) bool {
 
 	if fixed {
 		newContent := strings.Join(result, "\n")
-		os.WriteFile(file, []byte(newContent), 0644)
+		_ = os.WriteFile(file, []byte(newContent), 0644)
 		return true
 	}
 

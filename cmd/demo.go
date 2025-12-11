@@ -21,7 +21,7 @@ var demoCmd = &cobra.Command{
 		bar := progressbar.Default(1000, "Processing files")
 		for range 1000 {
 			time.Sleep(2 * time.Millisecond) // Simulate work
-			bar.Add(1)
+			_ = bar.Add(1)
 		}
 
 		fmt.Println("\n✓ Demo completed!")
