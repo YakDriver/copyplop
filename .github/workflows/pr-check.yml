@@ -27,7 +27,7 @@ jobs:
     - name: Modern Check
       run: make modern-check
 
-  golangci:
+  lint:
     name: golangci-lint
     runs-on: ubuntu-latest
     steps:
