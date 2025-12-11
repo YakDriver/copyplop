@@ -278,10 +278,7 @@ func (c *Config) IsThirdPartyCopyright(line string) bool {
 // DetectSmartExtensionType analyzes content to determine the actual file type for smart extensions
 func (c *Config) DetectSmartExtensionType(content []byte, filename string) string {
 	// Skip binary files - check for null bytes in first 512 bytes
-	checkLen := len(content)
-	if checkLen > 512 {
-		checkLen = 512
-	}
+	checkLen := min(len(content), 512)
 	for i := 0; i < checkLen; i++ {
 		if content[i] == 0 {
 			return ""
