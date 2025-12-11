@@ -245,10 +245,7 @@ func (f *Fixer) fixFile(file string) bool {
 // addBlankLineIfNeeded adds a blank line only if the next content line isn't already blank
 func addBlankLineIfNeeded(result *[]string, lines []string, startLine int) {
 	// Check if the next line to be processed is blank
-	nextLineIsBlank := false
-	if startLine < len(lines) && strings.TrimSpace(lines[startLine]) == "" {
-		nextLineIsBlank = true
-	}
+	nextLineIsBlank := startLine < len(lines) && strings.TrimSpace(lines[startLine]) == ""
 
 	// Only add blank line if next line isn't already blank
 	if !nextLineIsBlank {
