@@ -235,9 +235,9 @@ func matchesPath(pattern, path string) bool {
 	}
 
 	// Handle directory patterns by converting /* to /** for subdirectory matching
-	if strings.HasSuffix(pattern, "/*") {
+	if before, ok := strings.CutSuffix(pattern, "/*"); ok {
 		// Convert "internal/service/*" to "internal/service/**" to match subdirectories
-		dirPattern := strings.TrimSuffix(pattern, "/*") + "/**"
+		dirPattern := before + "/**"
 		if matched, _ := doublestar.Match(dirPattern, path); matched {
 			return true
 		}
