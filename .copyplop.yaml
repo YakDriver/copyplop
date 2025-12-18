@@ -15,7 +15,7 @@ license:
 files:
   # Only process files tracked by git (respects .gitignore)
   # Set to false to process all files in directory
-  git_tracked: true
+  git_tracked: false
   
   # Path filtering (optional) - supports doublestar glob patterns
   # include_paths: ["internal/service/[a-g]*"]  # Only process paths matching these patterns
@@ -73,6 +73,7 @@ detection:
     - "DO NOT EDIT"
   
   replace_patterns:
+    - "Copyright.*HashiCorp.*"
   
   # Limit how many lines to scan for existing copyright (0 = scan entire file)
   # Prevents finding copyrights deep in files (e.g., test cases)

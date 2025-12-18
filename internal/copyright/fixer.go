@@ -6,6 +6,7 @@ package copyright
 import (
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/YakDriver/copyplop/internal/config"
@@ -18,6 +19,14 @@ type Fixer struct {
 
 func NewFixer(cfg *config.Config) *Fixer {
 	return &Fixer{config: cfg}
+}
+
+// isSPDXLine detects any SPDX-License-Identifier line regardless of license or quotes
+func isSPDXLine(line string) bool {
+	// Match SPDX-License-Identifier with optional quotes and any license
+	spdxPattern := `SPDX-License-Identifier:\s*"?[^"]*"?`
+	matched, _ := regexp.MatchString(spdxPattern, line)
+	return matched
 }
 
 func (f *Fixer) Fix(path string) (*FixResult, error) {
@@ -146,6 +155,11 @@ func (f *Fixer) fixFile(file string) bool {
 			hasCorrectCopyright = true
 		} else if licenseHeader != "" && strings.TrimSpace(line) == strings.TrimSpace(licenseHeader) {
 			hasCorrectLicense = true
+		} else if isSPDXLine(line) {
+			// Found an SPDX line - we'll need to replace it if it's not exactly our format
+			if licenseHeader == "" || strings.TrimSpace(line) != strings.TrimSpace(licenseHeader) {
+				hasCopyright = true // Mark as needing replacement
+			}
 		}
 	}
 
@@ -199,6 +213,13 @@ func (f *Fixer) fixFile(file string) bool {
 			// Remove old copyright/license lines if we're adding new ones
 			if strings.TrimSpace(line) == strings.TrimSpace(copyrightHeader) ||
 				(licenseHeader != "" && strings.TrimSpace(line) == strings.TrimSpace(licenseHeader)) {
+				skipNext = true
+				continue
+			}
+
+			// Remove any SPDX line (handles duplicates and different formats)
+			if isSPDXLine(line) {
+				fixed = true
 				skipNext = true
 				continue
 			}
@@ -334,6 +355,12 @@ func (f *Fixer) ProcessContent(content []byte, ext string) ([]byte, error) {
 		if inHeaderArea {
 			if strings.TrimSpace(line) == strings.TrimSpace(copyrightHeader) ||
 				(licenseHeader != "" && strings.TrimSpace(line) == strings.TrimSpace(licenseHeader)) {
+				skipNext = true
+				continue
+			}
+
+			// Remove any SPDX line (handles duplicates and different formats)
+			if isSPDXLine(line) {
 				skipNext = true
 				continue
 			}
