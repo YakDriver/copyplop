@@ -39,6 +39,12 @@ type SmartExtensionIndicators struct {
 	Filenames []string `yaml:"filenames" mapstructure:"filenames"`
 }
 
+type PlacementExceptions struct {
+	XMLDeclaration   bool     `yaml:"xml_declaration" mapstructure:"xml_declaration"`
+	MarkdownHeading  bool     `yaml:"markdown_heading" mapstructure:"markdown_heading"`
+	Frontmatter      []string `yaml:"frontmatter" mapstructure:"frontmatter"`
+}
+
 type Files struct {
 	Extensions               []string                   `yaml:"extensions" mapstructure:"extensions"`
 	SmartExtensions          []string                   `yaml:"smart_extensions" mapstructure:"smart_extensions"`
@@ -48,6 +54,7 @@ type Files struct {
 	ExcludePaths             []string                   `yaml:"exclude_paths" mapstructure:"exclude_paths"`
 	CommentStyles            map[string]string          `yaml:"comment_styles" mapstructure:"comment_styles"`
 	BelowFrontmatter         []string                   `yaml:"below_frontmatter" mapstructure:"below_frontmatter"`
+	PlacementExceptions      PlacementExceptions        `yaml:"placement_exceptions" mapstructure:"placement_exceptions"`
 	GitTracked               bool                       `yaml:"git_tracked" mapstructure:"git_tracked"`
 }
 

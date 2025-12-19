@@ -53,6 +53,14 @@ func hasShebang(lines []string) bool {
 	return len(lines) > 0 && strings.HasPrefix(lines[0], "#!")
 }
 
+func hasXMLDeclaration(lines []string) bool {
+	return len(lines) > 0 && strings.HasPrefix(strings.TrimSpace(lines[0]), "<?xml")
+}
+
+func hasMarkdownHeading(lines []string) bool {
+	return len(lines) > 0 && strings.HasPrefix(strings.TrimSpace(lines[0]), "# ")
+}
+
 func getFrontmatterEnd(lines []string, cfg *config.Config, file string) int {
 	// Check for compound extensions (e.g., .html.markdown)
 	for _, belowExt := range cfg.Files.BelowFrontmatter {
@@ -69,4 +77,24 @@ func getFrontmatterEnd(lines []string, cfg *config.Config, file string) int {
 		}
 	}
 	return 0 // No frontmatter or not configured for this extension
+}
+
+func getFrontmatterEndNew(lines []string, cfg *config.Config, file string) int {
+	// Check new placement_exceptions.frontmatter configuration
+	for _, ext := range cfg.Files.PlacementExceptions.Frontmatter {
+		if strings.HasSuffix(file, ext) {
+			if len(lines) > 0 && strings.TrimSpace(lines[0]) == "---" {
+				// Find closing ---
+				for i := 1; i < len(lines); i++ {
+					if strings.TrimSpace(lines[i]) == "---" {
+						return i + 1 // Return line after closing ---
+					}
+				}
+			}
+			break
+		}
+	}
+	
+	// Fallback to legacy BelowFrontmatter for backward compatibility
+	return getFrontmatterEnd(lines, cfg, file)
 }

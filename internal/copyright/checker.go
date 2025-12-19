@@ -82,9 +82,19 @@ func (c *Checker) checkFile(file string) *Issue {
 		startLine = 1
 	}
 
-	frontmatterEnd := getFrontmatterEnd(lines, c.config, file)
+	// Handle XML declaration
+	if startLine < len(lines) && c.config.Files.PlacementExceptions.XMLDeclaration && hasXMLDeclaration(lines[startLine:]) {
+		startLine++
+	}
+
+	frontmatterEnd := getFrontmatterEndNew(lines, c.config, file)
 	if frontmatterEnd > startLine {
 		startLine = frontmatterEnd
+	}
+
+	// Handle markdown heading
+	if startLine < len(lines) && c.config.Files.PlacementExceptions.MarkdownHeading && hasMarkdownHeading(lines[startLine:]) {
+		startLine++
 	}
 
 	if startLine >= len(lines) {
