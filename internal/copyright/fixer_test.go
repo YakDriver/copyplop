@@ -581,3 +581,64 @@ func contentTokensEqual(a, b []string) bool {
 
 	return true
 }
+
+func TestFixer_XMLMultilineCommentReplacement(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	cfg := &config.Config{
+		Copyright: config.Copyright{
+			Holder:      "IBM Corp.",
+			StartYear:   2014,
+			CurrentYear: 2025,
+			Format:      "Copyright {{.Holder}} {{.StartYear}}, {{.CurrentYear}}",
+		},
+		License: config.License{
+			Enabled:    true,
+			Identifier: "MPL-2.0",
+			Format:     "SPDX-License-Identifier: {{.Identifier}}",
+		},
+		Files: config.Files{
+			CommentStyles: map[string]string{"xml": "<!--"},
+			PlacementExceptions: config.PlacementExceptions{
+				XMLDeclaration: false,
+			},
+		},
+		Detection: config.Detection{
+			ReplacePatterns: []string{"Copyright.*HashiCorp"},
+			MaxScanLines:    10,
+		},
+	}
+
+	input := `<?xml version="1.0" encoding="UTF-8"?>
+<!--
+ Copyright (c) HashiCorp, Inc.
+ SPDX-License-Identifier: MPL-2.0
+-->
+
+<root>content</root>`
+
+	expected := `<!-- Copyright IBM Corp. 2014, 2025 -->
+<!-- SPDX-License-Identifier: MPL-2.0 -->
+
+<?xml version="1.0" encoding="UTF-8"?>
+<root>content</root>`
+
+	testFile := filepath.Join(tmpDir, "test.xml")
+	if err := os.WriteFile(testFile, []byte(input), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	fixer := NewFixer(cfg)
+	if !fixer.fixFile(testFile) {
+		t.Fatal("Expected file to be fixed")
+	}
+
+	result, err := os.ReadFile(testFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if string(result) != expected {
+		t.Errorf("Expected:\n%s\n\nGot:\n%s", expected, string(result))
+	}
+}

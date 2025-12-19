@@ -92,8 +92,9 @@ func (c *Checker) checkFile(file string) *Issue {
 		startLine = frontmatterEnd
 	}
 
-	// Handle markdown heading
-	if startLine < len(lines) && c.config.Files.PlacementExceptions.MarkdownHeading && hasMarkdownHeading(lines[startLine:]) {
+	// Handle markdown heading - only for markdown files
+	isMarkdown := strings.HasSuffix(file, ".md") || strings.HasSuffix(file, ".markdown")
+	if startLine < len(lines) && isMarkdown && c.config.Files.PlacementExceptions.MarkdownHeading && hasMarkdownHeading(lines[startLine:]) {
 		startLine++
 	}
 
