@@ -116,10 +116,16 @@ func (f *Fixer) fixFile(file string) bool {
 	hasCopyright := false
 	thirdPartyLines := []string{}
 
-	// Handle shebang
+	// Handle shebang (always)
 	if hasShebang(lines) {
 		result = append(result, lines[0])
 		startLine = 1
+	}
+
+	// Handle XML declaration
+	if startLine < len(lines) && f.config.Files.PlacementExceptions.XMLDeclaration && hasXMLDeclaration(lines[startLine:]) {
+		result = append(result, lines[startLine])
+		startLine++
 	}
 
 	// Handle frontmatter - use detected extension for smart extensions
@@ -129,11 +135,17 @@ func (f *Fixer) fixFile(file string) bool {
 		// Use a filename that will match the BelowFrontmatter config
 		frontmatterFile = "dummy" + ext
 	}
-	frontmatterEnd := getFrontmatterEnd(lines, f.config, frontmatterFile)
+	frontmatterEnd := getFrontmatterEndNew(lines, f.config, frontmatterFile)
 	if frontmatterEnd > startLine {
 		// Add frontmatter to result
 		result = append(result, lines[startLine:frontmatterEnd]...)
 		startLine = frontmatterEnd
+	}
+
+	// Handle markdown heading
+	if startLine < len(lines) && f.config.Files.PlacementExceptions.MarkdownHeading && hasMarkdownHeading(lines[startLine:]) {
+		result = append(result, lines[startLine])
+		startLine++
 	}
 
 	// Determine scan limit for header area

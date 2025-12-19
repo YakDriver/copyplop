@@ -201,6 +201,59 @@ include_paths: ["internal/**", "cmd/**"]
 exclude_paths: [".github/**", "examples/**"]
 ```
 
+## Placement Exceptions
+
+Copyplop supports configurable placement exceptions for cases where copyright headers cannot be the first line in a file.
+
+### Configuration
+
+```yaml
+files:
+  placement_exceptions:
+    xml_declaration: true    # Allow <?xml version="1.0"?> before copyright
+    markdown_heading: true   # Allow # Heading before copyright  
+    frontmatter: ["md", "html.md"]  # YAML frontmatter extensions
+```
+
+### Exception Types
+
+**Always Enabled:**
+- **Shebang** (`#!/bin/bash`) - Always detected and preserved
+
+**Configurable Exceptions:**
+- **XML Declaration** - `<?xml version="1.0"?>` and similar
+- **Markdown Heading** - `# Title` as first line
+- **YAML Frontmatter** - Between `---` markers
+
+### Processing Order
+
+Exceptions are processed in this order:
+1. Shebang (always)
+2. XML Declaration (if enabled)
+3. YAML Frontmatter (if configured)
+4. Markdown Heading (if enabled)
+5. Copyright header placement
+
+### Examples
+
+**XML File:**
+```xml
+<?xml version="1.0"?>
+<!-- Copyright 2024 Your Corp -->
+
+<root>content</root>
+```
+
+**Markdown File:**
+```markdown
+# My Document
+<!-- Copyright 2024 Your Corp -->
+
+Content here...
+```
+
+**Backward Compatibility:** The existing `below_frontmatter` configuration is still supported but `placement_exceptions.frontmatter` is recommended for new configurations.
+
 ## Usage
 
 ```bash
