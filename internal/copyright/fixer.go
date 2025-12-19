@@ -142,8 +142,9 @@ func (f *Fixer) fixFile(file string) bool {
 		startLine = frontmatterEnd
 	}
 
-	// Handle markdown heading
-	if startLine < len(lines) && f.config.Files.PlacementExceptions.MarkdownHeading && hasMarkdownHeading(lines[startLine:]) {
+	// Handle markdown heading - only for markdown files
+	isMarkdown := strings.HasSuffix(file, ".md") || strings.HasSuffix(file, ".markdown")
+	if startLine < len(lines) && isMarkdown && f.config.Files.PlacementExceptions.MarkdownHeading && hasMarkdownHeading(lines[startLine:]) {
 		result = append(result, lines[startLine])
 		startLine++
 	}
@@ -216,12 +217,50 @@ func (f *Fixer) fixFile(file string) bool {
 
 	// Process remaining content, only removing copyrights from header area
 	skipNext := false
+	inCopyrightBlock := false // Track if we're inside a multi-line comment with copyright
+	skipNextBlank := false    // Skip blank line after copyright block removal
 	for i := startLine; i < len(lines); i++ {
 		line := lines[i]
+		trimmed := strings.TrimSpace(line)
 		inHeaderArea := i < maxScan
 
 		// Only skip/remove copyright lines if in header area
 		if inHeaderArea {
+			// Detect start of multi-line comment block
+			if trimmed == "<!--" {
+				// Look ahead to see if this block contains copyright
+				for j := i + 1; j < maxScan && j < len(lines); j++ {
+					checkLine := lines[j]
+					if strings.TrimSpace(checkLine) == "-->" {
+						break
+					}
+					if f.config.ShouldReplace(checkLine) || isSPDXLine(checkLine) {
+						inCopyrightBlock = true
+						fixed = true
+						break
+					}
+				}
+				if inCopyrightBlock {
+					continue // Skip the opening <!--
+				}
+			}
+
+			// Skip lines inside a copyright block
+			if inCopyrightBlock {
+				if trimmed == "-->" {
+					inCopyrightBlock = false
+					skipNextBlank = true
+				}
+				continue
+			}
+
+			// Skip blank line after copyright block removal
+			if skipNextBlank && trimmed == "" {
+				skipNextBlank = false
+				continue
+			}
+			skipNextBlank = false
+
 			// Remove old copyright/license lines if we're adding new ones
 			if strings.TrimSpace(line) == strings.TrimSpace(copyrightHeader) ||
 				(licenseHeader != "" && strings.TrimSpace(line) == strings.TrimSpace(licenseHeader)) {
