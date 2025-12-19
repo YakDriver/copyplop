@@ -642,3 +642,63 @@ func TestFixer_XMLMultilineCommentReplacement(t *testing.T) {
 		t.Errorf("Expected:\n%s\n\nGot:\n%s", expected, string(result))
 	}
 }
+
+func TestFixer_JSBlockCommentReplacement(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	cfg := &config.Config{
+		Copyright: config.Copyright{
+			Holder:      "IBM Corp.",
+			StartYear:   2014,
+			CurrentYear: 2025,
+			Format:      "Copyright {{.Holder}} {{.StartYear}}, {{.CurrentYear}}",
+		},
+		License: config.License{
+			Enabled:    true,
+			Identifier: "MPL-2.0",
+			Format:     "SPDX-License-Identifier: {{.Identifier}}",
+		},
+		Files: config.Files{
+			CommentStyles: map[string]string{"js": "/**"},
+		},
+		Detection: config.Detection{
+			ReplacePatterns: []string{"Copyright.*HashiCorp"},
+			MaxScanLines:    10,
+		},
+	}
+
+	input := `/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
+function hello() {}
+`
+
+	expected := `/**
+ * Copyright IBM Corp. 2014, 2025
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
+function hello() {}
+`
+
+	testFile := filepath.Join(tmpDir, "test.js")
+	if err := os.WriteFile(testFile, []byte(input), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	fixer := NewFixer(cfg)
+	if !fixer.fixFile(testFile) {
+		t.Fatal("Expected file to be fixed")
+	}
+
+	result, err := os.ReadFile(testFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if string(result) != expected {
+		t.Errorf("Expected:\n%s\n\nGot:\n%s", expected, string(result))
+	}
+}
