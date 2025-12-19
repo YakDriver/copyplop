@@ -106,6 +106,11 @@ func (c *Config) GetCopyrightHeader(ext string) (string, error) {
 		return prefix + " " + buf.String() + " -->", nil
 	}
 
+	// Special case: JS/CSS block comments
+	if prefix == "/**" {
+		return " * " + buf.String(), nil
+	}
+
 	// Special case: YAML files need quotes around comments containing colons
 	if ext == ".yml" || ext == ".yaml" {
 		content := buf.String()
@@ -154,6 +159,11 @@ func (c *Config) GetLicenseHeader(ext string) (string, error) {
 	// Special case: HTML/markdown comments need closing -->
 	if prefix == "<!--" {
 		return prefix + " " + buf.String() + " -->", nil
+	}
+
+	// Special case: JS/CSS block comments
+	if prefix == "/**" {
+		return " * " + buf.String(), nil
 	}
 
 	// Special case: YAML files need quotes around comments containing colons

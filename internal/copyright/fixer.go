@@ -13,6 +13,14 @@ import (
 	"github.com/schollz/progressbar/v3"
 )
 
+// isBlockCommentStyle returns true if the comment style requires wrapping
+func isBlockCommentStyle(cfg *config.Config, ext string) bool {
+	extKey := strings.TrimPrefix(ext, ".")
+	extKey = strings.ReplaceAll(extKey, ".", "_")
+	prefix := cfg.Files.CommentStyles[extKey]
+	return prefix == "/**"
+}
+
 type Fixer struct {
 	config *config.Config
 }
@@ -181,37 +189,42 @@ func (f *Fixer) fixFile(file string) bool {
 		return false
 	}
 
+	// Helper to add copyright headers with proper block comment wrapping
+	addHeaders := func(r *[]string) {
+		if isBlockCommentStyle(f.config, ext) {
+			*r = append(*r, "/**")
+			*r = append(*r, copyrightHeader)
+			if licenseHeader != "" {
+				*r = append(*r, licenseHeader)
+			}
+			*r = append(*r, " */")
+		} else {
+			*r = append(*r, copyrightHeader)
+			if licenseHeader != "" {
+				*r = append(*r, licenseHeader)
+			}
+		}
+	}
+
 	// Handle third-party copyrights based on action
 	switch f.config.ThirdParty.Action {
 	case "above":
 		// Add our copyright above third-party
-		result = append(result, copyrightHeader)
-		if licenseHeader != "" {
-			result = append(result, licenseHeader)
-		}
+		addHeaders(&result)
 		result = append(result, thirdPartyLines...)
 		addBlankLineIfNeeded(&result, lines, startLine)
 	case "below":
 		// Add third-party first, then our copyright
 		result = append(result, thirdPartyLines...)
-		result = append(result, copyrightHeader)
-		if licenseHeader != "" {
-			result = append(result, licenseHeader)
-		}
+		addHeaders(&result)
 		addBlankLineIfNeeded(&result, lines, startLine)
 	case "replace":
 		// Replace third-party with our copyright
-		result = append(result, copyrightHeader)
-		if licenseHeader != "" {
-			result = append(result, licenseHeader)
-		}
+		addHeaders(&result)
 		addBlankLineIfNeeded(&result, lines, startLine)
 	default: // "leave" or unspecified
 		// Just add our copyright, leave third-party as-is
-		result = append(result, copyrightHeader)
-		if licenseHeader != "" {
-			result = append(result, licenseHeader)
-		}
+		addHeaders(&result)
 		addBlankLineIfNeeded(&result, lines, startLine)
 	}
 
@@ -226,12 +239,17 @@ func (f *Fixer) fixFile(file string) bool {
 
 		// Only skip/remove copyright lines if in header area
 		if inHeaderArea {
-			// Detect start of multi-line comment block
-			if trimmed == "<!--" {
+			// Detect start of multi-line comment block (<!-- or /**)
+			if trimmed == "<!--" || trimmed == "/**" {
+				closeMarker := "-->"
+				if trimmed == "/**" {
+					closeMarker = "*/"
+				}
 				// Look ahead to see if this block contains copyright
 				for j := i + 1; j < maxScan && j < len(lines); j++ {
 					checkLine := lines[j]
-					if strings.TrimSpace(checkLine) == "-->" {
+					checkTrimmed := strings.TrimSpace(checkLine)
+					if checkTrimmed == closeMarker || strings.HasSuffix(checkTrimmed, closeMarker) {
 						break
 					}
 					if f.config.ShouldReplace(checkLine) || isSPDXLine(checkLine) {
@@ -241,13 +259,13 @@ func (f *Fixer) fixFile(file string) bool {
 					}
 				}
 				if inCopyrightBlock {
-					continue // Skip the opening <!--
+					continue // Skip the opening marker
 				}
 			}
 
 			// Skip lines inside a copyright block
 			if inCopyrightBlock {
-				if trimmed == "-->" {
+				if trimmed == "-->" || trimmed == "*/" || strings.HasSuffix(trimmed, "*/") {
 					inCopyrightBlock = false
 					skipNextBlank = true
 				}
