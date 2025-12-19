@@ -252,7 +252,7 @@ Exceptions are processed in this order:
 Content here...
 ```
 
-**Backward Compatibility:** The existing `below_frontmatter` configuration is still supported but `placement_exceptions.frontmatter` is recommended for new configurations.
+**Backward Compatibility:** The `below_frontmatter` configuration is deprecated. Use `placement_exceptions.frontmatter` instead.
 
 ## Usage
 
