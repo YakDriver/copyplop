@@ -308,6 +308,48 @@ func (c *Config) IsThirdPartyCopyright(line string) bool {
 	return false
 }
 
+// IsOwnCopyrightLine checks if a line matches our own copyright format (for self-updating)
+func (c *Config) IsOwnCopyrightLine(line, ext string) bool {
+	// Get comment prefix for this extension
+	extKey := strings.TrimPrefix(ext, ".")
+	extKey = strings.ReplaceAll(extKey, ".", "_")
+	prefix := c.Files.CommentStyles[extKey]
+	if prefix == "" {
+		// Fallback to hardcoded values if not found in config
+		switch ext {
+		case ".go":
+			prefix = "//"
+		case ".sh", ".py", ".hcl", ".tf", ".yml", ".yaml":
+			prefix = "#"
+		case ".md", ".html.markdown":
+			prefix = "<!--"
+		default:
+			prefix = "//"
+		}
+	}
+
+	trimmed := strings.TrimSpace(line)
+	
+	// Must start with comment prefix
+	if !strings.HasPrefix(trimmed, prefix) {
+		return false
+	}
+	
+	// Extract content after comment prefix
+	content := strings.TrimSpace(strings.TrimPrefix(trimmed, prefix))
+	
+	// Handle HTML-style comments
+	if prefix == "<!--" {
+		content = strings.TrimSuffix(content, "-->")
+		content = strings.TrimSpace(content)
+	}
+	
+	// Check if it matches our copyright pattern: "Copyright <holder> <years>"
+	copyrightPattern := `^Copyright\s+` + regexp.QuoteMeta(c.Copyright.Holder) + `\s+\d{4}(,\s*\d{4})?$`
+	matched, _ := regexp.MatchString(copyrightPattern, content)
+	return matched
+}
+
 // DetectSmartExtensionType analyzes content to determine the actual file type for smart extensions
 func (c *Config) DetectSmartExtensionType(content []byte, filename string) string {
 	// Skip binary files - check for null bytes in first 512 bytes
