@@ -40,9 +40,9 @@ type SmartExtensionIndicators struct {
 }
 
 type PlacementExceptions struct {
-	XMLDeclaration   bool     `yaml:"xml_declaration" mapstructure:"xml_declaration"`
-	MarkdownHeading  bool     `yaml:"markdown_heading" mapstructure:"markdown_heading"`
-	Frontmatter      []string `yaml:"frontmatter" mapstructure:"frontmatter"`
+	XMLDeclaration  bool     `yaml:"xml_declaration" mapstructure:"xml_declaration"`
+	MarkdownHeading bool     `yaml:"markdown_heading" mapstructure:"markdown_heading"`
+	Frontmatter     []string `yaml:"frontmatter" mapstructure:"frontmatter"`
 }
 
 type Files struct {
@@ -329,20 +329,20 @@ func (c *Config) IsOwnCopyrightLine(line, ext string) bool {
 	}
 
 	var content string
-	
+
 	// Handle block comment style - don't trim spaces first
 	if prefix == "/**" {
-		if strings.HasPrefix(line, " * ") {
-			content = strings.TrimSpace(strings.TrimPrefix(line, " * "))
+		if after, ok := strings.CutPrefix(line, " * "); ok {
+			content = strings.TrimSpace(after)
 		} else {
 			return false
 		}
 	} else {
 		trimmed := strings.TrimSpace(line)
-		if strings.HasPrefix(trimmed, prefix) {
+		if after, ok := strings.CutPrefix(trimmed, prefix); ok {
 			// Extract content after comment prefix
-			content = strings.TrimSpace(strings.TrimPrefix(trimmed, prefix))
-			
+			content = strings.TrimSpace(after)
+
 			// Handle HTML-style comments
 			if prefix == "<!--" {
 				content = strings.TrimSuffix(content, "-->")
@@ -352,7 +352,7 @@ func (c *Config) IsOwnCopyrightLine(line, ext string) bool {
 			return false
 		}
 	}
-	
+
 	// Check if it matches our copyright pattern: "Copyright <holder> <years>"
 	copyrightPattern := `^Copyright\s+` + regexp.QuoteMeta(c.Copyright.Holder) + `\s+\d{4}(,\s*\d{4})?$`
 	matched, _ := regexp.MatchString(copyrightPattern, content)
