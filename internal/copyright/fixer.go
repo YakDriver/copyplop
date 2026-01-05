@@ -29,11 +29,29 @@ func NewFixer(cfg *config.Config) *Fixer {
 	return &Fixer{config: cfg}
 }
 
-// isSPDXLine detects any SPDX-License-Identifier line regardless of license or quotes
-func isSPDXLine(line string) bool {
-	// Match SPDX-License-Identifier with optional quotes and any license
+// isSPDXHeaderLine detects SPDX-License-Identifier lines that are in comment format
+func isSPDXHeaderLine(line, commentPrefix string) bool {
+	var content string
+
+	// Handle block comment style - don't trim spaces first
+	if commentPrefix == "/**" {
+		if after, ok := strings.CutPrefix(line, " * "); ok {
+			content = strings.TrimSpace(after)
+		} else {
+			return false
+		}
+	} else {
+		trimmed := strings.TrimSpace(line)
+		if after, ok := strings.CutPrefix(trimmed, commentPrefix); ok {
+			// Remove comment prefix and check for SPDX pattern
+			content = strings.TrimSpace(after)
+		} else {
+			return false
+		}
+	}
+
 	spdxPattern := `SPDX-License-Identifier:\s*"?[^"]*"?`
-	matched, _ := regexp.MatchString(spdxPattern, line)
+	matched, _ := regexp.MatchString(spdxPattern, content)
 	return matched
 }
 
@@ -163,6 +181,24 @@ func (f *Fixer) fixFile(file string) bool {
 		maxScan = min(startLine+f.config.Detection.MaxScanLines, len(lines))
 	}
 
+	// Get comment prefix for SPDX detection
+	extKey := strings.TrimPrefix(ext, ".")
+	extKey = strings.ReplaceAll(extKey, ".", "_")
+	commentPrefix := f.config.Files.CommentStyles[extKey]
+	if commentPrefix == "" {
+		// Fallback to hardcoded values if not found in config
+		switch ext {
+		case ".go":
+			commentPrefix = "//"
+		case ".sh", ".py", ".hcl", ".tf", ".yml", ".yaml":
+			commentPrefix = "#"
+		case ".md", ".html.markdown":
+			commentPrefix = "<!--"
+		default:
+			commentPrefix = "//"
+		}
+	}
+
 	// Scan for existing copyrights and third-party copyrights in header area only
 	hasCorrectCopyright := false
 	hasCorrectLicense := false
@@ -170,14 +206,21 @@ func (f *Fixer) fixFile(file string) bool {
 		line := lines[i]
 		if f.config.ShouldReplace(line) {
 			hasCopyright = true
+		} else if f.config.IsOwnCopyrightLine(line, ext) {
+			// Found our own copyright line - mark for replacement if not current
+			if strings.TrimSpace(line) != strings.TrimSpace(copyrightHeader) {
+				hasCopyright = true
+			} else {
+				hasCorrectCopyright = true
+			}
 		} else if f.config.IsThirdPartyCopyright(line) {
 			thirdPartyLines = append(thirdPartyLines, line)
 		} else if strings.TrimSpace(line) == strings.TrimSpace(copyrightHeader) {
 			hasCorrectCopyright = true
 		} else if licenseHeader != "" && strings.TrimSpace(line) == strings.TrimSpace(licenseHeader) {
 			hasCorrectLicense = true
-		} else if isSPDXLine(line) {
-			// Found an SPDX line - we'll need to replace it if it's not exactly our format
+		} else if isSPDXHeaderLine(line, commentPrefix) {
+			// Found an SPDX header line - we'll need to replace it if it's not exactly our format
 			if licenseHeader == "" || strings.TrimSpace(line) != strings.TrimSpace(licenseHeader) {
 				hasCopyright = true // Mark as needing replacement
 			}
@@ -252,7 +295,7 @@ func (f *Fixer) fixFile(file string) bool {
 					if checkTrimmed == closeMarker || strings.HasSuffix(checkTrimmed, closeMarker) {
 						break
 					}
-					if f.config.ShouldReplace(checkLine) || isSPDXLine(checkLine) {
+					if f.config.ShouldReplace(checkLine) || f.config.IsOwnCopyrightLine(checkLine, ext) || isSPDXHeaderLine(checkLine, commentPrefix) {
 						inCopyrightBlock = true
 						fixed = true
 						break
@@ -286,8 +329,15 @@ func (f *Fixer) fixFile(file string) bool {
 				continue
 			}
 
-			// Remove any SPDX line (handles duplicates and different formats)
-			if isSPDXLine(line) {
+			// Remove our own copyright lines that need updating
+			if f.config.IsOwnCopyrightLine(line, ext) {
+				fixed = true
+				skipNext = true
+				continue
+			}
+
+			// Remove any SPDX header line (handles duplicates and different formats)
+			if isSPDXHeaderLine(line, commentPrefix) {
 				fixed = true
 				skipNext = true
 				continue
@@ -415,6 +465,24 @@ func (f *Fixer) ProcessContent(content []byte, ext string) ([]byte, error) {
 		result = append(result, "")
 	}
 
+	// Get comment prefix for SPDX detection
+	extKey := strings.TrimPrefix(ext, ".")
+	extKey = strings.ReplaceAll(extKey, ".", "_")
+	commentPrefix := f.config.Files.CommentStyles[extKey]
+	if commentPrefix == "" {
+		// Fallback to hardcoded values if not found in config
+		switch ext {
+		case ".go":
+			commentPrefix = "//"
+		case ".sh", ".py", ".hcl", ".tf", ".yml", ".yaml":
+			commentPrefix = "#"
+		case ".md", ".html.markdown":
+			commentPrefix = "<!--"
+		default:
+			commentPrefix = "//"
+		}
+	}
+
 	// Process remaining content (same logic as fixFile)
 	skipNext := false
 	for i := startLine; i < len(lines); i++ {
@@ -428,8 +496,14 @@ func (f *Fixer) ProcessContent(content []byte, ext string) ([]byte, error) {
 				continue
 			}
 
-			// Remove any SPDX line (handles duplicates and different formats)
-			if isSPDXLine(line) {
+			// Remove our own copyright lines that need updating
+			if f.config.IsOwnCopyrightLine(line, ext) {
+				skipNext = true
+				continue
+			}
+
+			// Remove any SPDX header line (handles duplicates and different formats)
+			if isSPDXHeaderLine(line, commentPrefix) {
 				skipNext = true
 				continue
 			}

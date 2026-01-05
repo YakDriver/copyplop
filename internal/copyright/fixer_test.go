@@ -12,6 +12,132 @@ import (
 	"github.com/YakDriver/copyplop/internal/config"
 )
 
+func TestFixer_SelfUpdatingAndSPDXPrecision(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	cfg := &config.Config{
+		Copyright: config.Copyright{
+			Holder:      "IBM Corp.",
+			StartYear:   2014,
+			CurrentYear: 2026, // Updated year
+			Format:      "Copyright {{.Holder}} {{.StartYear}}, {{.CurrentYear}}",
+		},
+		License: config.License{
+			Enabled:    true,
+			Identifier: "MPL-2.0",
+			Format:     "SPDX-License-Identifier: {{.Identifier}}",
+		},
+		Files: config.Files{
+			CommentStyles: map[string]string{"go": "//", "yaml": "#", "js": "/**"},
+		},
+		Detection: config.Detection{
+			MaxScanLines: 20,
+		},
+	}
+
+	fixer := NewFixer(cfg)
+
+	tests := []struct {
+		name     string
+		filename string
+		input    string
+		expected string
+	}{
+		{
+			name:     "self-updating copyright year",
+			filename: "test.go",
+			input: `// Copyright IBM Corp. 2014, 2025
+// SPDX-License-Identifier: MPL-2.0
+
+package main`,
+			expected: `// Copyright IBM Corp. 2014, 2026
+// SPDX-License-Identifier: MPL-2.0
+
+package main`,
+		},
+		{
+			name:     "yaml config with SPDX in content should not be removed",
+			filename: "config.yaml",
+			input: `# Copyright IBM Corp. 2014, 2025
+# "SPDX-License-Identifier: MPL-2.0"
+
+license:
+  format: "SPDX-License-Identifier: {{.Identifier}}"
+  enabled: true`,
+			expected: `# Copyright IBM Corp. 2014, 2026
+# "SPDX-License-Identifier: MPL-2.0"
+
+license:
+  format: "SPDX-License-Identifier: {{.Identifier}}"
+  enabled: true`,
+		},
+		{
+			name:     "copyright in documentation should not be removed",
+			filename: "docs.go",
+			input: `// Copyright IBM Corp. 2014, 2025
+// SPDX-License-Identifier: MPL-2.0
+
+package main
+
+// This function handles Copyright law compliance
+// It mentions SPDX-License-Identifier in documentation
+func TestCopyright() {
+	// Copyright IBM Corp. appears in comments too
+}`,
+			expected: `// Copyright IBM Corp. 2014, 2026
+// SPDX-License-Identifier: MPL-2.0
+
+package main
+
+// This function handles Copyright law compliance
+// It mentions SPDX-License-Identifier in documentation
+func TestCopyright() {
+	// Copyright IBM Corp. appears in comments too
+}`,
+		},
+		{
+			name:     "block comment self-updating",
+			filename: "test.js",
+			input: `/**
+ * Copyright IBM Corp. 2014, 2025
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
+function test() {}`,
+			expected: `/**
+ * Copyright IBM Corp. 2014, 2026
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
+function test() {}`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			filePath := filepath.Join(tmpDir, tt.filename)
+			err := os.WriteFile(filePath, []byte(tt.input), 0644)
+			if err != nil {
+				t.Fatalf("Failed to write test file: %v", err)
+			}
+
+			fixed := fixer.fixFile(filePath)
+			if !fixed {
+				t.Error("Expected file to be fixed")
+			}
+
+			content, err := os.ReadFile(filePath)
+			if err != nil {
+				t.Fatalf("Failed to read fixed file: %v", err)
+			}
+
+			if string(content) != tt.expected {
+				t.Errorf("Expected:\n%s\n\nGot:\n%s", tt.expected, string(content))
+			}
+		})
+	}
+}
+
 func TestFixer_fixFile(t *testing.T) {
 	tmpDir := t.TempDir()
 

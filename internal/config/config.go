@@ -40,9 +40,9 @@ type SmartExtensionIndicators struct {
 }
 
 type PlacementExceptions struct {
-	XMLDeclaration   bool     `yaml:"xml_declaration" mapstructure:"xml_declaration"`
-	MarkdownHeading  bool     `yaml:"markdown_heading" mapstructure:"markdown_heading"`
-	Frontmatter      []string `yaml:"frontmatter" mapstructure:"frontmatter"`
+	XMLDeclaration  bool     `yaml:"xml_declaration" mapstructure:"xml_declaration"`
+	MarkdownHeading bool     `yaml:"markdown_heading" mapstructure:"markdown_heading"`
+	Frontmatter     []string `yaml:"frontmatter" mapstructure:"frontmatter"`
 }
 
 type Files struct {
@@ -306,6 +306,57 @@ func (c *Config) IsThirdPartyCopyright(line string) bool {
 		}
 	}
 	return false
+}
+
+// IsOwnCopyrightLine checks if a line matches our own copyright format (for self-updating)
+func (c *Config) IsOwnCopyrightLine(line, ext string) bool {
+	// Get comment prefix for this extension
+	extKey := strings.TrimPrefix(ext, ".")
+	extKey = strings.ReplaceAll(extKey, ".", "_")
+	prefix := c.Files.CommentStyles[extKey]
+	if prefix == "" {
+		// Fallback to hardcoded values if not found in config
+		switch ext {
+		case ".go":
+			prefix = "//"
+		case ".sh", ".py", ".hcl", ".tf", ".yml", ".yaml":
+			prefix = "#"
+		case ".md", ".html.markdown":
+			prefix = "<!--"
+		default:
+			prefix = "//"
+		}
+	}
+
+	var content string
+
+	// Handle block comment style - don't trim spaces first
+	if prefix == "/**" {
+		if after, ok := strings.CutPrefix(line, " * "); ok {
+			content = strings.TrimSpace(after)
+		} else {
+			return false
+		}
+	} else {
+		trimmed := strings.TrimSpace(line)
+		if after, ok := strings.CutPrefix(trimmed, prefix); ok {
+			// Extract content after comment prefix
+			content = strings.TrimSpace(after)
+
+			// Handle HTML-style comments
+			if prefix == "<!--" {
+				content = strings.TrimSuffix(content, "-->")
+				content = strings.TrimSpace(content)
+			}
+		} else {
+			return false
+		}
+	}
+
+	// Check if it matches our copyright pattern: "Copyright <holder> <years>"
+	copyrightPattern := `^Copyright\s+` + regexp.QuoteMeta(c.Copyright.Holder) + `\s+\d{4}(,\s*\d{4})?$`
+	matched, _ := regexp.MatchString(copyrightPattern, content)
+	return matched
 }
 
 // DetectSmartExtensionType analyzes content to determine the actual file type for smart extensions

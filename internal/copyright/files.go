@@ -94,7 +94,7 @@ func getFrontmatterEndNew(lines []string, cfg *config.Config, file string) int {
 			break
 		}
 	}
-	
+
 	// Fallback to legacy BelowFrontmatter for backward compatibility
 	return getFrontmatterEnd(lines, cfg, file)
 }

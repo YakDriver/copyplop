@@ -67,20 +67,20 @@ func TestPlacementExceptions(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			startLine := 0
-			
+
 			// Simulate the exception processing logic
 			if hasShebang(tt.lines) {
 				startLine = 1
 			}
-			
+
 			if startLine < len(tt.lines) && tt.config.Files.PlacementExceptions.XMLDeclaration && hasXMLDeclaration(tt.lines[startLine:]) {
 				startLine++
 			}
-			
+
 			if startLine < len(tt.lines) && tt.config.Files.PlacementExceptions.MarkdownHeading && hasMarkdownHeading(tt.lines[startLine:]) {
 				startLine++
 			}
-			
+
 			if startLine != tt.expected {
 				t.Errorf("expected startLine %d, got %d", tt.expected, startLine)
 			}
