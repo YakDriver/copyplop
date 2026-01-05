@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/YakDriver/copyplop/internal/config"
+	"github.com/YakDriver/copyplop/version"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -18,8 +19,9 @@ var (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "copyplop",
-	Short: "Manage copyright headers across codebases",
+	Use:     "copyplop",
+	Short:   "Manage copyright headers across codebases",
+	Version: version.Version(),
 	Long: `copyplop is a configurable tool for managing copyright headers in source code files.
 It can check for missing headers, fix incorrect ones, and handle any copyright format.`,
 }
@@ -35,6 +37,9 @@ func init() {
 	cobra.OnInitialize(initConfig)
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is .copyplop.yaml)")
 	rootCmd.PersistentFlags().StringP("path", "p", ".", "path to process")
+
+	// Customize version template to show "v0.10.0" instead of "version 0.10.0"
+	rootCmd.SetVersionTemplate("v{{.Version}}\n")
 
 	// Bind flags to viper
 	_ = viper.BindPFlag("path", rootCmd.PersistentFlags().Lookup("path"))
