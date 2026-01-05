@@ -31,15 +31,25 @@ func NewFixer(cfg *config.Config) *Fixer {
 
 // isSPDXHeaderLine detects SPDX-License-Identifier lines that are in comment format
 func isSPDXHeaderLine(line, commentPrefix string) bool {
-	trimmed := strings.TrimSpace(line)
+	var content string
 	
-	// Must start with comment prefix to be a header line
-	if !strings.HasPrefix(trimmed, commentPrefix) {
-		return false
+	// Handle block comment style - don't trim spaces first
+	if commentPrefix == "/**" {
+		if strings.HasPrefix(line, " * ") {
+			content = strings.TrimSpace(strings.TrimPrefix(line, " * "))
+		} else {
+			return false
+		}
+	} else {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, commentPrefix) {
+			// Remove comment prefix and check for SPDX pattern
+			content = strings.TrimSpace(strings.TrimPrefix(trimmed, commentPrefix))
+		} else {
+			return false
+		}
 	}
 	
-	// Remove comment prefix and check for SPDX pattern
-	content := strings.TrimSpace(strings.TrimPrefix(trimmed, commentPrefix))
 	spdxPattern := `SPDX-License-Identifier:\s*"?[^"]*"?`
 	matched, _ := regexp.MatchString(spdxPattern, content)
 	return matched

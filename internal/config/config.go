@@ -328,20 +328,29 @@ func (c *Config) IsOwnCopyrightLine(line, ext string) bool {
 		}
 	}
 
-	trimmed := strings.TrimSpace(line)
+	var content string
 	
-	// Must start with comment prefix
-	if !strings.HasPrefix(trimmed, prefix) {
-		return false
-	}
-	
-	// Extract content after comment prefix
-	content := strings.TrimSpace(strings.TrimPrefix(trimmed, prefix))
-	
-	// Handle HTML-style comments
-	if prefix == "<!--" {
-		content = strings.TrimSuffix(content, "-->")
-		content = strings.TrimSpace(content)
+	// Handle block comment style - don't trim spaces first
+	if prefix == "/**" {
+		if strings.HasPrefix(line, " * ") {
+			content = strings.TrimSpace(strings.TrimPrefix(line, " * "))
+		} else {
+			return false
+		}
+	} else {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, prefix) {
+			// Extract content after comment prefix
+			content = strings.TrimSpace(strings.TrimPrefix(trimmed, prefix))
+			
+			// Handle HTML-style comments
+			if prefix == "<!--" {
+				content = strings.TrimSuffix(content, "-->")
+				content = strings.TrimSpace(content)
+			}
+		} else {
+			return false
+		}
 	}
 	
 	// Check if it matches our copyright pattern: "Copyright <holder> <years>"

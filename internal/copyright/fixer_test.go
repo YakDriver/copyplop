@@ -28,7 +28,7 @@ func TestFixer_SelfUpdatingAndSPDXPrecision(t *testing.T) {
 			Format:     "SPDX-License-Identifier: {{.Identifier}}",
 		},
 		Files: config.Files{
-			CommentStyles: map[string]string{"go": "//", "yaml": "#"},
+			CommentStyles: map[string]string{"go": "//", "yaml": "#", "js": "/**"},
 		},
 		Detection: config.Detection{
 			MaxScanLines: 20,
@@ -94,6 +94,22 @@ package main
 func TestCopyright() {
 	// Copyright IBM Corp. appears in comments too
 }`,
+		},
+		{
+			name:     "block comment self-updating",
+			filename: "test.js",
+			input: `/**
+ * Copyright IBM Corp. 2014, 2025
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
+function test() {}`,
+			expected: `/**
+ * Copyright IBM Corp. 2014, 2026
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
+function test() {}`,
 		},
 	}
 
