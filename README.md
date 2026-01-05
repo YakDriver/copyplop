@@ -1,4 +1,4 @@
-<!-- Copyright IBM Corp. 2014, 2025 -->
+<!-- Copyright IBM Corp. 2014, 2026 -->
 <!-- SPDX-License-Identifier: MPL-2.0 -->
 
 # copyplop
@@ -8,9 +8,11 @@ A fully configurable Go CLI tool for managing copyright headers in source code f
 ## Features
 
 - **Fully configurable**: Define any copyright format via templates
+- **Self-updating**: Automatically updates headers when config changes (e.g., year updates)
+- **Precise detection**: Only modifies actual header lines, preserves documentation mentions
 - **Optional licensing**: Enable/disable SPDX license headers
 - **Path filtering**: Include/exclude files using powerful glob patterns with `**` support
-- **Multiple file types**: Support any file extension with custom comment styles
+- **Multiple file types**: Support any file extension with custom comment styles (including block comments)
 - **Smart detection**: Skip generated files, replace specific patterns
 - **Third-party copyright handling**: Configure how to handle existing third-party copyrights
 - **Git integration**: Only processes git-tracked files
@@ -31,7 +33,7 @@ Create `.copyplop.yaml` in your project root:
 copyright:
   holder: "Your Company"
   start_year: 2020
-  current_year: 2025
+  current_year: 2026
   format: "Copyright {{.Holder}} {{.StartYear}}-{{.CurrentYear}}"
   
 license:
@@ -94,7 +96,7 @@ package main
 
 **With `action: "above"`:**
 ```go
-// Copyright IBM Corp. 2014, 2025
+// Copyright IBM Corp. 2014, 2026
 //Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
 
 package main
@@ -103,7 +105,7 @@ package main
 **With `action: "below"`:**
 ```go
 //Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
-// Copyright IBM Corp. 2014, 2025
+// Copyright IBM Corp. 2014, 2026
 package main
 ```
 
@@ -254,6 +256,51 @@ Content here...
 
 **Backward Compatibility:** The `below_frontmatter` configuration is deprecated. Use `placement_exceptions.frontmatter` instead.
 
+## Self-Updating Headers
+
+Copyplop automatically detects and updates its own copyright headers when configuration changes:
+
+```yaml
+# Change current_year from 2025 to 2026
+copyright:
+  current_year: 2026  # Updated
+```
+
+**Before:**
+```go
+// Copyright IBM Corp. 2014, 2025
+// SPDX-License-Identifier: MPL-2.0
+```
+
+**After running `copyplop fix`:**
+```go
+// Copyright IBM Corp. 2014, 2026  
+// SPDX-License-Identifier: MPL-2.0
+```
+
+### Precision Detection
+
+Copyplop precisely identifies header lines vs. documentation mentions:
+
+- ✅ **Updates**: Actual comment headers at the top of files
+- ✅ **Preserves**: Documentation mentioning "Copyright" or "SPDX-License-Identifier"
+- ✅ **Preserves**: Configuration values like `format: "SPDX-License-Identifier: {{.Identifier}}"`
+
+### Block Comment Support
+
+Works with all comment styles including block comments:
+
+```javascript
+/**
+ * Copyright IBM Corp. 2014, 2025  // ← Gets updated
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
+function example() {
+  // This mentions Copyright IBM Corp. in docs  // ← Preserved
+}
+```
+
 ## Usage
 
 ```bash
@@ -265,6 +312,11 @@ copyplop fix
 
 # Process specific path
 copyplop check --path ./internal/service/ec2
+
+# Show version
+copyplop version
+# or
+copyplop --version
 
 # Demo progress bar
 copyplop demo
@@ -287,7 +339,7 @@ Available in `license.format`:
 copyright:
   format: "Copyright {{.Holder}} {{.StartYear}}, {{.CurrentYear}}"
 ```
-Output: `// Copyright IBM Corp. 2014, 2025`
+Output: `// Copyright IBM Corp. 2014, 2026`
 
 ### HashiCorp Style (no year)
 ```yaml
@@ -299,6 +351,6 @@ copyright:
 copyright:
   format: "Copyright {{.CurrentYear}} {{.Holder}}"
 ```
-Output: `// Copyright 2025 Acme Corp`
+Output: `// Copyright 2026 Acme Corp`
 
 See `examples/` directory for complete configurations.
