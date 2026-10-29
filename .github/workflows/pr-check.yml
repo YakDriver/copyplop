@@ -26,7 +26,7 @@ jobs:
         version: latest
         args: --timeout=5m
 
-  modern-go-checks:
+  go-fix-check:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v7
@@ -34,5 +34,5 @@ jobs:
       with:
         go-version: stable
         check-latest: true
-    - name: Modern Check
-      run: make modern-check
+    - name: Go Fix Check
+      run: make fix-check

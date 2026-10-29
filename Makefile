@@ -1,4 +1,4 @@
-.PHONY: build test clean install fmt lint modern modern-check deps test-coverage
+.PHONY: build test clean install fmt lint fix fix-check deps test-coverage
 
 build:
 	go build -o bin/copyplop .
@@ -22,13 +22,13 @@ fmt:
 lint:
 	golangci-lint run
 
-modern-check:
-	@echo "make: Checking for modern Go code..."
-	@go run golang.org/x/tools/gopls/internal/analysis/modernize/cmd/modernize@latest -test ./...
+fix-check:
+	@echo "make: Checking go fix..."
+	@go fix -diff ./...
 
-modern:
-	@echo "make: Fixing checks for modern Go code..."
-	@go run golang.org/x/tools/gopls/internal/analysis/modernize/cmd/modernize@latest -fix -test ./...
+fix:
+	@echo "make: Applying go fix..."
+	@go fix ./...
 
 deps:
 	go mod tidy
